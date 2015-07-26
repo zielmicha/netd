@@ -2,6 +2,7 @@
 type
   ConfError* = object of ValueError
     data: string
+    filename: string
     offset: int
   TokenizeError* = object of ConfError
   ParseError* = object of ConfError

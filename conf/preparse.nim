@@ -1,16 +1,18 @@
 import conf/tokenize, conf/ast, conf/util, conf/exceptions
 import strutils
 
-proc endingBracket(starting: char): char =
+proc endingBracket(starting: string): string =
   case starting
-  of '(':
-    return ')'
-  of '[':
-    return ']'
-  of '{':
-    return '}'
+  of "(":
+    return ")"
+  of "[":
+    return "]"
+  of "{":
+    return "}"
+  of "START":
+    return "EOF"
   else:
-    assert false
+    assert false, $starting
 
 const tokenTypeToNodeType = {
   ttWhitespace: ntWhitespace,
@@ -22,9 +24,12 @@ const tokenTypeToNodeType = {
 }.enumTable(array[ttWhitespace..ttComma, NodeType])
 
 proc preparse*(data: string): seq[Node] =
-  var nodesStack: seq[seq[Node]] = @[]
-  nodesStack.add seq[Node](@[])
-  var bracketTypeStack: seq[char] = @['-']
+  var rootNode: Node
+  new(rootNode)
+  rootNode.typ = ntBracketed
+  rootNode.children = @[]
+  rootNode.originalValue = "START"
+  var nodesStack: seq[Node] = @[rootNode]
 
   for token in tokenizeConf(data):
     var node: Node
@@ -35,21 +40,22 @@ proc preparse*(data: string): seq[Node] =
     case token.typ
     of {ttWhitespace, ttString, ttComment, ttSemicolon, ttComma, ttColon}:
       node.typ = tokenTypeToNodeType[token.typ]
+      nodesStack[^1].children.add node
     of ttBracketOpen:
-      var newList: seq[Node] = @[]
       node.typ = ntBracketed
-      node.children = newList
-      nodesStack[^1].add node
-      nodesStack.add newList
-      bracketTypeStack.add endingBracket(node.originalValue[0])
+      node.children = @[]
+      nodesStack[^1].children.add node
+      nodesStack.add node
     of ttBracketClose:
-      if bracketTypeStack[^1] != node.originalValue[0]:
+      let expected = endingBracket(nodesStack[^1].originalValue)
+      if expected != node.originalValue:
         raise newConfError(ParseError, data, node.offset,
                            "invalid closing bracket - expected $1, found $2" %
-                             [$bracketTypeStack[^1], node.originalValue])
+                             [expected, node.originalValue])
       else:
         discard nodesStack.pop
-        discard bracketTypeStack.pop
 
-  if bracketTypeStack.len != 1:
-    raise newException(ParseError, "unclosed bracket $1" % $bracketTypeStack[^1])
+  if nodesStack.len != 1:
+    raise newException(ParseError, "unclosed bracket $1" % nodesStack[^1].originalValue)
+
+  return nodesStack[0].children

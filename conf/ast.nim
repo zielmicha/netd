@@ -1,3 +1,4 @@
+import strutils
 
 type NodeType* = enum
   ntString
@@ -7,6 +8,8 @@ type NodeType* = enum
   ntColon
   ntSemicolon
   ntComma
+
+const unmeaningfulNodeTypes = {ntComment, ntWhitespace}
 
 type Node* = ref object {.acyclic.}
   originalValue*: string
@@ -24,23 +27,44 @@ type ValueType* = enum
   vtString
   vtDict
 
-type
-  ItemOrJunk*[ITEM, JUNK] = object
-    case isItem*: bool
-    of true:
-      item*: ITEM
-    of false:
-      junk*: JUNK
+type LitteredItem* = ref object {.inheritable.}
+  junkBefore*: Node
+  junkAfter*: Node
 
-  LitteredSeq*[ITEM, JUNK] = object
-    items*: seq[ItemOrJunk[ITEM, JUNK]]
-
-type Value* = ref object {.acyclic.}
+type Value* =  ref object {.acyclic.} of LitteredItem
   case typ*: ValueType
   of vtList:
-    listItems: LitteredSeq[Value, Node]
+    listItems: seq[Value]
   of vtString:
     originalValue: string
   of vtDict:
-    # in form: [key1, value1, key2, value2, ...]
-    dictItems: LitteredSeq[Value, Node]
+    dictItems: seq[tuple[key: Value, value: Value]]
+
+type
+  ArgType* = enum
+    aCommand
+    aSuite
+    aValue
+
+  Arg* = object
+    case typ*: ArgType
+    of aCommand:
+      command*: Command
+    of aSuite:
+      suite*: Suite
+    of aValue:
+      value*: Value
+
+  Command* = ref object {.acyclic.} of LitteredItem
+    name: string
+    args: seq[Arg]
+
+  Suite* = ref object of LitteredItem
+    commands: seq[Command]
+
+proc `$`*(n: Node): string =
+  case n.typ:
+  of ntBracketed:
+    "ntBracketed '$1' $2" % [n.originalValue, $n.children]
+  else:
+    "$1 [$2]" % [$n.typ, n.originalValue]

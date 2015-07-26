@@ -52,7 +52,7 @@ proc tokenizeConf*(data: string): seq[Token] =
     of {'(', '[', '{'}:
       token.typ = ttBracketOpen
     of {')', ']', '}'}:
-      token.typ = ttBracketOpen
+      token.typ = ttBracketClose
     of ';':
       token.typ = ttSemicolon
     of ':':

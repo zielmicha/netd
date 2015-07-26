@@ -8,7 +8,7 @@ type NodeType* = enum
   ntSemicolon
   ntComma
 
-type Node* {.acyclic.} = ref object
+type Node* = ref object {.acyclic.}
   originalValue*: string
   offset*: int
 
@@ -17,6 +17,7 @@ type Node* {.acyclic.} = ref object
     value*: string
   of ntBracketed:
     children*: seq[Node]
+  else: discard
 
 type ValueType* = enum
   vtList
@@ -25,16 +26,16 @@ type ValueType* = enum
 
 type
   ItemOrJunk*[ITEM, JUNK] = object
-    case isItem: bool
+    case isItem*: bool
     of true:
-      item: ITEM
+      item*: ITEM
     of false:
-      junk: JUNK
+      junk*: JUNK
 
   LitteredSeq*[ITEM, JUNK] = object
     items*: seq[ItemOrJunk[ITEM, JUNK]]
 
-type Value* {.acyclic.} = ref object
+type Value* = ref object {.acyclic.}
   case typ*: ValueType
   of vtList:
     listItems: LitteredSeq[Value, Node]

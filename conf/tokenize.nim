@@ -1,3 +1,5 @@
+import conf/exceptions
+
 type TokenType* = enum
   ttWhitespace
   ttString
@@ -13,13 +15,10 @@ type Token* = object
   endOffset*: int
   typ*: TokenType
 
-type TokenizeError = object of Exception
-
 const whitespace = {' ', '\t', '\L', '\r'}
-const specialChars = {'"', '\'', '#', '{', '}', '(', ')', '[', ']', ',', ':'} + whitespace
 const mergableTokens = {ttString, ttWhitespace}
 
-proc tokenize(data: string): seq[Token] =
+proc tokenizeConf*(data: string): seq[Token] =
   var preresult: seq[Token] = @[]
   var pos = 0
 
@@ -34,7 +33,7 @@ proc tokenize(data: string): seq[Token] =
     var token: Token
     token.startOffset = pos - 1
     case ch:
-    of {'"', '\''}:
+    of {'\"', '\''}:
       token.typ = ttString
       let orgCh = ch
       while true:

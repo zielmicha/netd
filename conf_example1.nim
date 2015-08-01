@@ -1,5 +1,4 @@
-import conf/defs
-import tables
+import conf/defs, conf/parse, conf/ast
 
 # Link suite
 
@@ -17,7 +16,7 @@ let mainCommands = SuiteDef(commands: @[
 ])
 
 proc linkMatchDevCmd(): ArgsDef =
-  @[valueArgDef(name="name", valueType=vtString)]
+  @[valueArgDef(name="name")]
 
 let linkMatchCommands = SuiteDef(commands: @[
   ("dev", linkMatchDevCmd.funcThunk),
@@ -29,3 +28,6 @@ proc linkCmd(): ArgsDef =
                 isCommand=true),
    suiteArgDef(name="body",
                suiteDef=linkCommands.valueThunk)]
+
+when isMainModule:
+  let ret = parse(stdin.readAll(), mainCommands)

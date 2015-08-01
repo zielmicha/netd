@@ -28,8 +28,8 @@ type ValueType* = enum
   vtDict
 
 type LitteredItem* = ref object {.inheritable.}
-  junkBefore*: Node
-  junkAfter*: Node
+  junkBefore*: seq[Node]
+  junkAfter*: seq[Node]
 
 type Value* =  ref object {.acyclic.} of LitteredItem
   case typ*: ValueType
@@ -56,11 +56,11 @@ type
       value*: Value
 
   Command* = ref object {.acyclic.} of LitteredItem
-    name: string
-    args: seq[Arg]
+    name*: string
+    args*: seq[Arg]
 
   Suite* = ref object of LitteredItem
-    commands: seq[Command]
+    commands*: seq[Command]
 
 proc `$`*(n: Node): string =
   case n.typ:
@@ -68,3 +68,8 @@ proc `$`*(n: Node): string =
     "ntBracketed '$1' $2" % [n.originalValue, $n.children]
   else:
     "$1 [$2]" % [$n.typ, n.originalValue]
+
+proc stringValue*(n: Value): string =
+  let originalValue = n.originalValue
+  # TODO: implement parsing
+  originalValue

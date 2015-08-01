@@ -11,6 +11,12 @@ type
       function: Supplier[T]
       # TODO: args
 
+proc unwrap*[T](thunk: ParserThunk[T]): T =
+  if thunk.isValue:
+    return thunk.value
+  else:
+    return thunk.function()
+
 type
   ArgDefType* = enum
     adtValue
@@ -18,7 +24,7 @@ type
     adtMoreArgs
     adtCommand
 
-  ValueType* = enum
+  ValueDefType* = enum
     vtString
     vtInt
     vtDict
@@ -31,7 +37,7 @@ type
     help*: string
     case typ*: ArgDefType
     of adtValue:
-      valueType: ValueType
+      valueType: ValueDefType
     of {adtSuite, adtCommand}:
       suiteDef*: ParserThunk[SuiteDef]
     of adtMoreArgs:
@@ -42,7 +48,7 @@ type
   SuiteDef* = ref object
     commands*: seq[tuple[name: string, def: ParserThunk[ArgsDef]]]
 
-proc valueArgDef*(name: string, valueType: ValueType, required: bool=true, help: string=nil): ArgDef =
+proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: string=nil): ArgDef =
   new(result)
   result.typ = adtValue
   result.required = required

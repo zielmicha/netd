@@ -1,28 +1,44 @@
 import conf/defs, conf/parse, conf/ast, conf/exceptions
 
+# TODO: refactor to allow better plugin architecture
+
+let baseAdressingCommands = SuiteDef(commands: @[
+  cmd("default_route", emptyArgDef())
+])
+
+# Static addressing
+
+let staticAdressingCommands = SuiteDef(commands: @[
+  cmd("address", singleValueArgDef()),
+  cmd("gateway", singleValueArgDef())
+]) & baseAdressingCommands
+
+# Address definition
+
+let addressDefCommands = SuiteDef(commands: @[
+  cmd("static", @[suiteArgDef(suiteDef=staticAdressingCommands)]),
+])
+
 # Link suite
 
 let linkCommands = SuiteDef(commands: @[
-  ("name", singleValueArgDef(help="rename after link creation").valueThunk),
-  ("namespace", singleValueArgDef().valueThunk),
-  ("bridge_with", singleValueArgDef().valueThunk),
-  ("bridge_master", emptyArgDef().valueThunk)
-])
+  cmd("name", singleValueArgDef(help="rename after link creation")),
+  cmd("namespace", singleValueArgDef()),
+  cmd("bridge_with", singleValueArgDef()),
+  cmd("bridge_master", emptyArgDef())
+]) & addressDefCommands
 
 # Main suite
 
 proc linkCmd(): ArgsDef
 
 let mainCommands = SuiteDef(commands: @[
-  ("namespace", singleValueArgDef(help="move to network namespace after link creation").valueThunk),
-  ("link", linkCmd.funcThunk)
+  cmd("namespace", singleValueArgDef(help="move to network namespace after link creation").valueThunk),
+  cmd("link", linkCmd.funcThunk)
 ])
 
-proc linkMatchDevCmd(): ArgsDef =
-  @[valueArgDef(name="name")]
-
 let linkMatchCommands = SuiteDef(commands: @[
-  ("dev", linkMatchDevCmd.funcThunk),
+  cmd("dev", @[valueArgDef(name="name")]),
 ])
 
 proc linkCmd(): ArgsDef =
@@ -35,5 +51,6 @@ proc linkCmd(): ArgsDef =
 when isMainModule:
   try:
     let ret = parse(stdin.readAll(), "stdin", mainCommands)
+    ret.echo
   except ConfError:
     (ref ConfError)(getCurrentException()).printError()

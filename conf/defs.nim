@@ -43,8 +43,10 @@ type
 
   ArgsDef* = seq[ArgDef]
 
+  CmdDef* = tuple[name: string, def: ParserThunk[ArgsDef]]
+
   SuiteDef* = ref object
-    commands*: seq[tuple[name: string, def: ParserThunk[ArgsDef]]]
+    commands*: seq[CmdDef]
 
 proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: string=nil): ArgDef =
   new(result)
@@ -54,7 +56,7 @@ proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: s
   result.name = name
   result.valueType = valueType
 
-proc suiteArgDef*(name: string, suiteDef: ParserThunk[SuiteDef], required: bool=true, help: string=nil, isCommand: bool=false): ArgDef =
+proc suiteArgDef*(suiteDef: ParserThunk[SuiteDef], name="body", required: bool=true, help: string=nil, isCommand: bool=false): ArgDef =
   new(result)
   result.typ = if isCommand: adtCommand else: adtSuite
   result.required = required
@@ -62,16 +64,28 @@ proc suiteArgDef*(name: string, suiteDef: ParserThunk[SuiteDef], required: bool=
   result.name = name
   result.suiteDef = suiteDef
 
-converter funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
+proc funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
   result.isValue = false
   result.function = function
 
-proc valueThunk*[T](val: T): ParserThunk[T] =
+converter valueThunk*[T](val: T): ParserThunk[T] =
   result.isValue = true
   result.value = val
 
 proc singleValueArgDef*(valueType=vtString, valueName="value", help: string=nil): ArgsDef =
   @[valueArgDef(name=valueName, valueType=valueType, help=help)]
 
+proc singleSuiteArgDef*(suiteDef: ParserThunk[SuiteDef], valueName="body", help: string=nil): ArgsDef =
+  @[suiteArgDef(suiteDef=suiteDef, name=valueName, help=help)]
+
 proc emptyArgDef*(): ArgsDef =
   @[]
+
+proc cmd*(name: string, def: ParserThunk[ArgsDef]): CmdDef =
+  (name, def)
+
+proc cmd*(name: string, def: ArgsDef): CmdDef =
+  cmd(name, def.valueThunk)
+
+proc `&`*(a: SuiteDef, b: SuiteDef): SuiteDef =
+  SuiteDef(commands: a.commands & b.commands)

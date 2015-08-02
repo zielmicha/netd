@@ -100,3 +100,33 @@ proc stringValue*(n: Value): string =
     # TODO: better parsing
     return originalValue[1..^1]
   return originalValue
+
+proc indent(t: string): string =
+  t.replace("\L", "\L  ")
+
+proc `$`*(val: Arg): string
+
+proc `$`*(command: Command): string =
+  "($1 $2)" % [command.name,
+              command.args.map(`$`).join(" ")]
+
+proc `$`*(suite: Suite): string =
+  "{" & indent("\L" & suite.commands.map(`$`).join("\L")) & "\L}"
+
+proc `$`*(value: Value): string =
+  case value.typ:
+  of vtString:
+    return value.originalValue
+  of vtList:
+    return $value.listItems
+  of vtDict:
+    return $value.dictItems
+
+proc `$`*(val: Arg): string =
+  case val.typ:
+  of aValue:
+    $(val.value)
+  of aSuite:
+    $(val.suite)
+  of aCommand:
+    $(val.command)

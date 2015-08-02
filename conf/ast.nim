@@ -10,6 +10,7 @@ type NodeType* = enum
   ntComma
 
 const unmeaningfulNodeTypes = {ntComment, ntWhitespace}
+const meaningfulNodeTypes* = {ntString, ntBracketed, ntColon, ntSemicolon, ntComma}
 
 type Node* = ref object {.acyclic.}
   originalValue*: string
@@ -30,15 +31,16 @@ type ValueType* = enum
 type LitteredItem* = ref object {.inheritable.}
   junkBefore*: seq[Node]
   junkAfter*: seq[Node]
+  offset*: int
 
 type Value* =  ref object {.acyclic.} of LitteredItem
   case typ*: ValueType
   of vtList:
-    listItems: seq[Value]
+    listItems*: seq[Value]
   of vtString:
-    originalValue: string
+    originalValue*: string
   of vtDict:
-    dictItems: seq[tuple[key: Value, value: Value]]
+    dictItems*: seq[tuple[key: Value, value: Value]]
 
 type
   ArgType* = enum
@@ -46,7 +48,7 @@ type
     aSuite
     aValue
 
-  Arg* = object
+  Arg* = object {.acyclic.}
     case typ*: ArgType
     of aCommand:
       command*: Command
@@ -59,8 +61,31 @@ type
     name*: string
     args*: seq[Arg]
 
-  Suite* = ref object of LitteredItem
+  Suite* = ref object {.acyclic.} of LitteredItem
     commands*: seq[Command]
+
+proc makeSyntheticWhitespace*(data: string): Node =
+  new(result)
+  result.typ = ntWhitespace
+  result.originalValue = data
+
+proc makeArg*(val: Command): Arg =
+  result.typ = aCommand
+  result.command = val
+
+proc makeArg*(val: Suite): Arg =
+  result.typ = aSuite
+  result.suite = val
+
+proc makeArg*(val: Value): Arg =
+  result.typ = aValue
+  result.value = val
+
+proc newLitteredItem*[T](item: var T, before: openarray[Node], after: openarray[Node], offset: int) =
+  new(item)
+  item.junkBefore = @before
+  item.junkAfter = @after
+  item.offset = offset
 
 proc `$`*(n: Node): string =
   case n.typ:
@@ -71,5 +96,7 @@ proc `$`*(n: Node): string =
 
 proc stringValue*(n: Value): string =
   let originalValue = n.originalValue
-  # TODO: implement parsing
-  originalValue
+  if originalValue[0] in {'"', '\''}:
+    # TODO: better parsing
+    return originalValue[1..^1]
+  return originalValue

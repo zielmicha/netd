@@ -1,9 +1,12 @@
-import conf/defs, conf/parse, conf/ast
+import conf/defs, conf/parse, conf/ast, conf/exceptions
 
 # Link suite
 
 let linkCommands = SuiteDef(commands: @[
-  ("name", singleValueArgDef(help="rename after link creation").valueThunk)
+  ("name", singleValueArgDef(help="rename after link creation").valueThunk),
+  ("namespace", singleValueArgDef().valueThunk),
+  ("bridge_with", singleValueArgDef().valueThunk),
+  ("bridge_master", emptyArgDef().valueThunk)
 ])
 
 # Main suite
@@ -30,4 +33,7 @@ proc linkCmd(): ArgsDef =
                suiteDef=linkCommands.valueThunk)]
 
 when isMainModule:
-  let ret = parse(stdin.readAll(), mainCommands)
+  try:
+    let ret = parse(stdin.readAll(), "stdin", mainCommands)
+  except ConfError:
+    (ref ConfError)(getCurrentException()).printError()

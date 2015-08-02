@@ -1,14 +1,12 @@
 import tables
 
 type
-  Supplier[T] = (proc(): T)
-
   ParserThunk[T] = object
     case isValue: bool
     of true:
       value: T
     of false:
-      function: Supplier[T]
+      function: (proc(): T {.closure.})
       # TODO: args
 
 proc unwrap*[T](thunk: ParserThunk[T]): T =
@@ -74,3 +72,6 @@ proc valueThunk*[T](val: T): ParserThunk[T] =
 
 proc singleValueArgDef*(valueType=vtString, valueName="value", help: string=nil): ArgsDef =
   @[valueArgDef(name=valueName, valueType=valueType, help=help)]
+
+proc emptyArgDef*(): ArgsDef =
+  @[]

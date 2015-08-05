@@ -1,0 +1,3 @@
+import netd/main
+
+main()

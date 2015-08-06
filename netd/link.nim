@@ -1,4 +1,6 @@
 import netd/core
+import conf/ast
+import commonnim
 
 type
   ManagedDevice* = object
@@ -35,7 +37,12 @@ method gatherInterfaces*(plugin: Plugin): seq[ManagedDevice] =
   ##
   ## All synethetic devices that are not returned by some plugin
   ## will be deleted.
+  @[]
 
 method configureInterfaces*(plugin: Plugin) =
   ## Here plugin should configure and (if neccessary) create
   ## devices it promised to create in gatherInterfaces.
+
+method gatherSubinterfaces*(manager: LinkManager, config: Suite): seq[ManagedDevice]
+
+proc gatherAllSubinterfaces*(manager: LinkManager, config: Suite): seq[ManagedDevice] =

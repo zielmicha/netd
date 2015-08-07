@@ -32,7 +32,7 @@ let linkCommands = SuiteDef(commands: @[
 
 proc linkCmd(): ArgsDef
 
-let mainCommands = SuiteDef(commands: @[
+let mainCommands* = SuiteDef(commands: @[
   cmd("namespace", singleValueArgDef(help="move to network namespace after link creation").valueThunk),
   cmd("link", linkCmd.funcThunk)
 ])

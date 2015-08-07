@@ -9,5 +9,5 @@ proc create*(t: typedesc[LinkDevPlugin], manager: NetworkManager): LinkDevPlugin
   new(result)
   result.manager = manager
 
-method gatherInterfaces*(plugin: LinkDevPlugin): seq[ManagedDevice] =
+method gatherInterfaces*(plugin: LinkDevPlugin): seq[ManagedInterface] =
   nil

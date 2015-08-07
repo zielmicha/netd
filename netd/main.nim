@@ -13,3 +13,6 @@ proc main*() =
   let manager = NetworkManager.create
   manager.registerPlugin(LinkManager)
   manager.registerPlugin(LinkDevPlugin)
+
+  if manager.loadConfig(config):
+    manager.run

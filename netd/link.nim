@@ -3,7 +3,7 @@ import conf/ast
 import commonnim
 
 type
-  ManagedDevice* = object
+  ManagedInterface* = object
     abstractName: string ## Abstract device name
     ## Stored in 'alias' as 'abstractName'.
     ## In form:
@@ -19,19 +19,19 @@ type
     namespaceName: string ## Network namespace name
 
     isSynthetic: bool ## Was it created by netd?
-    ## Synthetic devices will be deleted when they are orophaned by their plugin.
+    ## Synthetic interfaces will be deleted when they are orophaned by their plugin.
     ## Stored in 'alias' as 'isSynthetic'
 
   LinkManager* = ref object of Plugin
     manager: NetworkManager
-    managedDevices: seq[ManagedDevice]
+    managedDevices: seq[ManagedInterface]
 
 proc create*(t: typedesc[LinkManager], manager: NetworkManager): LinkManager =
   new(result)
   result.manager = manager
 
-method gatherInterfaces*(plugin: Plugin): seq[ManagedDevice] =
-  ## Plugin should read configuration and return `ManagedDevice`s
+method gatherInterfaces*(plugin: Plugin): seq[ManagedInterface] =
+  ## Plugin should read configuration and return `ManagedInterface`s
   ## for all network interfaces that would be created from that
   ## configuration.
   ##
@@ -39,10 +39,27 @@ method gatherInterfaces*(plugin: Plugin): seq[ManagedDevice] =
   ## will be deleted.
   @[]
 
-method configureInterfaces*(plugin: Plugin) =
+method setupInterfaces*(plugin: Plugin) =
   ## Here plugin should configure and (if neccessary) create
   ## devices it promised to create in gatherInterfaces.
 
-method gatherSubinterfaces*(manager: LinkManager, config: Suite): seq[ManagedDevice]
+method gatherSubinterfaces*(plugin: Plugin, config: Suite): seq[ManagedInterface] =
+  ## gatherInterfaces version for subinterfaces
+  @[]
 
-proc gatherAllSubinterfaces*(manager: LinkManager, config: Suite): seq[ManagedDevice] =
+method configureInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
+  ## Configure IPs and subinterfaces for given `ManagedInterface`
+  discard
+
+# Gathered for all plugins:
+
+proc gatherSubinterfacesAll*(self: LinkManager, config: Suite): seq[ManagedInterface] =
+  result = @[]
+  for plugin in self.manager.iterPlugins:
+    result &= plugin.gatherSubinterfaces(config)
+
+proc configureInterfaceAll*(self: LinkManager, iface: ManagedInterface, config: Suite) =
+  for plugin in self.manager.iterPlugins:
+    plugin.configureInterface(iface, config)
+
+include netd/linkimpl

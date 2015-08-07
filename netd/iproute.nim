@@ -1,14 +1,21 @@
 # iproute2 cheatsheet: http://baturin.org/docs/iproute2
 # netlink overview: http://1984.lsi.us.es/~pablo/docs/spae.pdf
-import os
+import os, osproc
+import subprocess, commonnim
 
-proc readSysfsProperty*(ifaceName: string, propertyName: string): string =
-  readFile("/sys/class/net" / ifaceName / propertyName)
+type InterfaceName* = tuple[namespace: string, name: string]
 
-proc writeSysfsProperty*(ifaceName: string, propertyName: string, data: string) =
-  writeFile("/sys/class/net" / ifaceName / propertyName, data)
+proc readSysfsProperty*(ifaceName: InterfaceName, propertyName: string): string =
+  readFileSysfs("/sys/class/net" / ifaceName.name / propertyName)
 
-iterator listSysfsInterfaces*(): string =
+proc writeSysfsProperty*(ifaceName: InterfaceName, propertyName: string, data: string) =
+  writeFile("/sys/class/net" / ifaceName.name / propertyName, data)
+
+iterator listSysfsInterfaces*(): InterfaceName =
+  # TODO: also walk other namespaces
   for kind, path in walkDir("/sys/class/net"):
     let name = path.splitPath().tail
-    yield name
+    yield (nil, name)
+
+proc delete*(ifaceName: InterfaceName) =
+  checkCall(["ip", "link", "del", "dev", ifaceName.name], echo=true)

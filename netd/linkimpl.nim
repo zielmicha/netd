@@ -12,9 +12,9 @@ type LivingInterface = object
   namespaceName: string
   isSynthetic: bool
 
-proc readAliasProperties(name: string): Table[string, string] =
+proc readAliasProperties(ifaceName: InterfaceName): Table[string, string] =
   result = initTable[string, string]()
-  let data = readSysfsProperty(name, "ifalias")
+  let data = readSysfsProperty(ifaceName, "ifalias").strip
   if data.startsWith("NETD,"):
     let parts = data.split(",")
     for i, part in parts:
@@ -22,28 +22,40 @@ proc readAliasProperties(name: string): Table[string, string] =
         continue
       let split = part.find('=')
       if split != -1:
-        result[part[0..split]] = part[split+1..^1]
+        result[part[0..split-1]] = part[split+1..^1]
 
-proc writeAliasProperties(name: string, prop: Table[string, string]) =
+proc writeAliasProperties(ifaceName: InterfaceName, prop: Table[string, string]) =
   var s = "NETD"
   for k, v in prop:
     s.add("," & k & "=" & v)
-  writeSysfsProperty(name, "ifalias", s)
+  writeSysfsProperty(ifaceName, "ifalias", s)
 
-proc infoAboutLivingInterface(name: string): LivingInterface =
-  result.userName = name
-  result.namespaceName = nil
-  # TODO: parse alias
-  let props = readAliasProperties(name)
+proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
+  result.userName = ifaceName.name
+  result.namespaceName = ifaceName.namespace
+
+  let props = readAliasProperties(ifaceName)
   result.abstractName = props["abstractName"]
   result.isSynthetic = props["isSynthetic"] == "true"
 
 proc listLivingInterfaces(): seq[LivingInterface] =
-  # TODO: also walk other namespaces
+  result = @[]
   for name in listSysfsInterfaces():
     result.add infoAboutLivingInterface(name)
 
+proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
+  let allInterfaces = listLivingInterfaces()
+  var managedNames = initCountTable[InterfaceName]()
+
+  for iface in managed:
+    managedNames.inc iface.interfaceName
+
+  for iface in allInterfaces:
+    let interfaceName: InterfaceName = (namespace: iface.namespaceName, name: iface.userName)
+    if iface.isSynthetic and managedNames[interfaceName] == 0:
+      delete(interfaceName)
+
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
-  let managedInterfaces = self.gatherInterfacesAll
-  let allInterfaces = listLivingInterfaces
+  let managedInterfaces = self.gatherInterfacesAll()
+  removeUnusedInterfaces(managedInterfaces)

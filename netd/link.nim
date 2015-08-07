@@ -1,6 +1,9 @@
 import netd/core
 import conf/ast
 import commonnim
+import iproute
+
+export iproute.InterfaceName
 
 type
   ManagedInterface* = object
@@ -61,5 +64,8 @@ proc gatherSubinterfacesAll*(self: LinkManager, config: Suite): seq[ManagedInter
 proc configureInterfaceAll*(self: LinkManager, iface: ManagedInterface, config: Suite) =
   for plugin in self.manager.iterPlugins:
     plugin.configureInterface(iface, config)
+
+proc interfaceName*(iface: ManagedInterface): InterfaceName =
+  (namespace: iface.namespaceName, name: iface.userName)
 
 include netd/linkimpl

@@ -19,11 +19,13 @@ iterator listSysfsInterfaces*(): InterfaceName =
     let name = path.splitPath().tail
     yield (nil, name)
 
-proc callIp(namespaceName: string, args: openarray[string]) =
+proc callIp*(namespaceName: string, args: openarray[string]) =
   assert namespaceName == nil or namespaceName == "root"
   checkCall(args, echo=true)
 
 proc sanitizeArg(val: string): string =
+  if val == nil:
+    raise newException(ValueError, "nil passed to iproute2 call")
   if val.startsWith("-"):
     raise newException(ValueError, "invalid argument %1" % [$val])
   val
@@ -50,12 +52,7 @@ proc createRootNamespace*() =
   writeFile(nsFile, "")
   checkCall(["mount", "--bind", "/proc/self/ns/net", nsFile], echo=true)
 
-proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string]) =
-  var cmd = @["ip", "link", "set", "dev", ifaceName.name]
-  for k, v in attrs:
-    cmd.add(k)
-    cmd.add(sanitizeArg(v))
-  callIp(ifaceName.namespace, cmd)
+proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string])
 
 proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
   var attrs = initTable[string, string]()
@@ -65,3 +62,25 @@ proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
   attrs["netns"] = namespaceName(namespace)
 
   ipLinkSet(ifaceName, attrs)
+
+# Direct
+
+proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string]) =
+  var cmd = @["ip", "link", "set", "dev", sanitizeArg(ifaceName.name)]
+  for k, v in attrs:
+    cmd.add(k)
+    cmd.add(sanitizeArg(v))
+  callIp(ifaceName.namespace, cmd)
+
+proc ipLinkUp*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["ip", "link", "set", "dev", sanitizeArg(ifaceName.name), "up"])
+
+proc ipAddrFlush*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["ip", "addr", "flush", "dev", sanitizeArg(ifaceName.name)])
+
+proc ipAddrAdd*(ifaceName: InterfaceName, address: string) =
+  callIp(ifaceName.namespace, ["ip", "addr", "add", "dev", sanitizeArg(ifaceName.name), sanitizeArg(address)])
+
+proc ipRouteAddDefault*(via: string) =
+  # FIXME: what about namespace?
+  callIp(nil, ["ip", "route", "add", "default", "via", sanitizeArg(via)])

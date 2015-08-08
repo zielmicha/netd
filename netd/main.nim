@@ -5,6 +5,7 @@ import netd/core
 import netd/link
 import netd/linkhw
 import netd/addrstatic
+import netd/routing
 
 proc main*() =
   let params = os.commandLineParams()
@@ -14,7 +15,10 @@ proc main*() =
   let config = params[0]
 
   let manager = NetworkManager.create
+
   manager.registerPlugin(LinkManager)
+  manager.registerPlugin(RoutingManager)
+
   manager.registerPlugin(LinkHwPlugin)
   manager.registerPlugin(AddrStaticPlugin)
 

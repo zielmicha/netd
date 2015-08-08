@@ -2,11 +2,6 @@ import netd/iproute
 import conf/ast
 import tables, strutils, sequtils
 
-proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
-  result = @[]
-  for plugin in self.manager.iterPlugins:
-    result &= plugin.gatherInterfaces()
-
 proc applyRename(interfaceName: InterfaceName, suite: Suite): InterfaceName =
   let newName = suite.singleValue("name", required=false).stringValue
   let namespace = suite.singleValue("namespace", required=false).stringValue
@@ -66,9 +61,19 @@ proc setupRootNs() =
   if "root" notin namespaces:
     createRootNamespace()
 
+proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
+  result = @[]
+  for plugin in self.manager.iterPlugins:
+    result &= plugin.gatherInterfaces()
+
+proc setupInterfacesAll(self: LinkManager) =
+  for plugin in self.manager.iterPlugins:
+    plugin.setupInterfaces()
+
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
   setupRootNs()
   let managedInterfaces = self.gatherInterfacesAll()
   echo "managed interfaces: ", $managedInterfaces
   removeUnusedInterfaces(managedInterfaces)
+  self.setupInterfacesAll()

@@ -1,4 +1,5 @@
 import strutils, sequtils
+import commonnim
 
 type NodeType* = enum
   ntString
@@ -166,6 +167,11 @@ iterator commandsWithName*(suite: Suite, name: string): Command =
     if command.name == name:
       yield command
 
+proc hasCommandWithName*(suite: Suite, name: string): bool =
+  for command in suite.commandsWithName(name):
+    return true
+  return false
+
 proc singleCommand*(suite: Suite, name: string, required=true): Command =
   let s = toSeq(commandsWithName(suite, name))
   if len(s) == 0:
@@ -181,3 +187,5 @@ proc singleValue*(suite: Suite, name: string, required=true): Value =
   let cmd = singleCommand(suite, name, required)
   if cmd == nil:
     return nil
+  else:
+    return cmd.args.unpackSeq1.value

@@ -8,6 +8,7 @@ type
     context: seq[string]
   TokenizeError* = object of ConfError
   ParseError* = object of ConfError
+  SemanticError* = object of ConfError
 
 var localErrorContext {.threadvar.}: seq[string]
 

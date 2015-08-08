@@ -1,9 +1,11 @@
 # iproute2 cheatsheet: http://baturin.org/docs/iproute2
 # netlink overview: http://1984.lsi.us.es/~pablo/docs/spae.pdf
 import os, osproc
-import subprocess, commonnim
+import subprocess, commonnim, tables, strutils
 
-type InterfaceName* = tuple[namespace: string, name: string]
+type
+  ## Location of a kernel interface.
+  InterfaceName* = tuple[namespace: string, name: string]
 
 proc readSysfsProperty*(ifaceName: InterfaceName, propertyName: string): string =
   readFileSysfs("/sys/class/net" / ifaceName.name / propertyName)
@@ -17,5 +19,49 @@ iterator listSysfsInterfaces*(): InterfaceName =
     let name = path.splitPath().tail
     yield (nil, name)
 
+proc callIp(namespaceName: string, args: openarray[string]) =
+  assert namespaceName == nil or namespaceName == "root"
+  checkCall(args, echo=true)
+
+proc sanitizeArg(val: string): string =
+  if val.startsWith("-"):
+    raise newException(ValueError, "invalid argument %1" % [$val])
+  val
+
+proc namespaceName(name: string): string =
+  if name == nil:
+    return "root"
+  else:
+    return name
+
 proc delete*(ifaceName: InterfaceName) =
-  checkCall(["ip", "link", "del", "dev", ifaceName.name], echo=true)
+  callIp(ifaceName.namespace, ["ip", "link", "del", "dev", sanitizeArg(ifaceName.name)])
+
+iterator listNamespaces*(): string =
+  for kind, path in walkDir("/var/run/netns"):
+    let name = path.splitPath().tail
+    yield name
+
+proc createNamespace*(name: string) =
+  callIp(nil, ["ip", "netns", "add", sanitizeArg(name)])
+
+proc createRootNamespace*() =
+  let nsFile = "/var/run/netns/root"
+  writeFile(nsFile, "")
+  checkCall(["mount", "--bind", "/proc/self/ns/net", nsFile], echo=true)
+
+proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string]) =
+  var cmd = @["ip", "link", "set", "dev", ifaceName.name]
+  for k, v in attrs:
+    cmd.add(k)
+    cmd.add(sanitizeArg(v))
+  callIp(ifaceName.namespace, cmd)
+
+proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
+  var attrs = initTable[string, string]()
+  if name != nil:
+    attrs["name"] = name
+
+  attrs["netns"] = namespaceName(namespace)
+
+  ipLinkSet(ifaceName, attrs)

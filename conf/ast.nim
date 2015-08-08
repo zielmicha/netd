@@ -1,4 +1,4 @@
-import strutils
+import strutils, sequtils
 
 type NodeType* = enum
   ntString
@@ -64,6 +64,8 @@ type
   Suite* = ref object {.acyclic.} of LitteredItem
     commands*: seq[Command]
 
+# Creation
+
 proc makeSyntheticWhitespace*(data: string): Node =
   new(result)
   result.typ = ntWhitespace
@@ -87,6 +89,28 @@ proc newLitteredItem*[T](item: var T, before: openarray[Node], after: openarray[
   item.junkAfter = @after
   item.offset = offset
 
+# Exceptions
+
+import conf/exceptions
+
+proc argToLitteredItem(arg: Arg): LitteredItem =
+  case arg.typ
+  of aCommand:
+    return arg.command
+  of aSuite:
+    return arg.suite
+  of aValue:
+    return arg.value
+
+proc newConfError*(item: LitteredItem, msg: string): ref SemanticError =
+  # TODO
+  newConfError(SemanticError, offset=item.offset, msg=msg, data=nil, filename=nil)
+
+proc newConfError*(item: Arg, msg: string): ref SemanticError =
+  newConfError(item.argToLitteredItem, msg)
+
+# To string
+
 proc `$`*(n: Node): string =
   case n.typ:
   of ntBracketed:
@@ -95,6 +119,10 @@ proc `$`*(n: Node): string =
     "$1 [$2]" % [$n.typ, n.originalValue]
 
 proc stringValue*(n: Value): string =
+  if n == nil: # enables common workflow with singleValue(required=false)
+    return nil
+  if n.typ != vtString:
+    raise newConfError(n, "expected string found $1" % $n.typ)
   let originalValue = n.originalValue
   if originalValue[0] in {'"', '\''}:
     # TODO: better parsing
@@ -130,3 +158,26 @@ proc `$`*(val: Arg): string =
     $(val.suite)
   of aCommand:
     $(val.command)
+
+# Browsing
+
+iterator commandsWithName*(suite: Suite, name: string): Command =
+  for command in suite.commands:
+    if command.name == name:
+      yield command
+
+proc singleCommand*(suite: Suite, name: string, required=true): Command =
+  let s = toSeq(commandsWithName(suite, name))
+  if len(s) == 0:
+    if required:
+      raise newConfError(suite, "required command $1 not found" % name)
+    else:
+      return nil
+  if len(s) > 1:
+    raise newConfError(s[1], "command $1 repeated $2 times, at most one instance is allowed" % [name, $len(s)])
+  return s[0]
+
+proc singleValue*(suite: Suite, name: string, required=true): Value =
+  let cmd = singleCommand(suite, name, required)
+  if cmd == nil:
+    return nil

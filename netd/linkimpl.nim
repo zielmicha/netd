@@ -1,4 +1,5 @@
 import netd/iproute
+import conf/ast
 import tables, strutils, sequtils
 
 proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
@@ -6,11 +7,14 @@ proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
   for plugin in self.manager.iterPlugins:
     result &= plugin.gatherInterfaces()
 
-type LivingInterface = object
-  abstractName: string
-  userName: string
-  namespaceName: string
-  isSynthetic: bool
+proc applyRename(interfaceName: InterfaceName, suite: Suite): InterfaceName =
+  let newName = suite.singleValue("name", required=false).stringValue
+  let namespace = suite.singleValue("namespace", required=false).stringValue
+  let name = if newName != nil: newName else: interfaceName.name
+  let isAlreadyOk = (namespace == interfaceName.namespace) and (newName == nil or newName == interfaceName.name)
+  if not isAlreadyOk:
+    rename(interfaceName, name, namespace)
+  return (namespace: namespace, name: name)
 
 proc readAliasProperties(ifaceName: InterfaceName): Table[string, string] =
   result = initTable[string, string]()
@@ -31,7 +35,7 @@ proc writeAliasProperties(ifaceName: InterfaceName, prop: Table[string, string])
   writeSysfsProperty(ifaceName, "ifalias", s)
 
 proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
-  result.userName = ifaceName.name
+  result.kernelName = ifaceName.name
   result.namespaceName = ifaceName.namespace
 
   let props = readAliasProperties(ifaceName)
@@ -48,14 +52,23 @@ proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
   var managedNames = initCountTable[InterfaceName]()
 
   for iface in managed:
+    echo "ManagedInterface $1" % $iface
     managedNames.inc iface.interfaceName
 
   for iface in allInterfaces:
-    let interfaceName: InterfaceName = (namespace: iface.namespaceName, name: iface.userName)
+    let interfaceName: InterfaceName = (namespace: iface.namespaceName, name: iface.kernelName)
     if iface.isSynthetic and managedNames[interfaceName] == 0:
       delete(interfaceName)
 
+proc setupRootNs() =
+  let namespaces = toSeq(listNamespaces())
+  echo "existing network namespaces: ", $namespaces
+  if "root" notin namespaces:
+    createRootNamespace()
+
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
+  setupRootNs()
   let managedInterfaces = self.gatherInterfacesAll()
+  echo "managed interfaces: ", $managedInterfaces
   removeUnusedInterfaces(managedInterfaces)

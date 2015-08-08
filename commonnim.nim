@@ -27,3 +27,15 @@ proc readFileSysfs*(filename: string): TaintedString =
     result = readAllBuffer(f).TaintedString
   finally:
     close(f)
+
+# --- unpackSeq ---
+
+type Pair[A, B] = tuple[first: A, second: B]
+
+proc unpackSeq1*[T](args: T): auto =
+  assert args.len == 1
+  return args[0]
+
+proc unpackSeq2*[T](args: T): auto =
+  assert args.len == 2
+  return (args[0], args[1])

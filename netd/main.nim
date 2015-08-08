@@ -3,7 +3,7 @@ import netd/core
 
 # Plugins
 import netd/link
-import netd/linkdev
+import netd/linkhw
 import netd/addrstatic
 
 proc main*() =
@@ -15,7 +15,7 @@ proc main*() =
 
   let manager = NetworkManager.create
   manager.registerPlugin(LinkManager)
-  manager.registerPlugin(LinkDevPlugin)
+  manager.registerPlugin(LinkHwPlugin)
   manager.registerPlugin(AddrStaticPlugin)
 
   if manager.loadConfig(config):

@@ -21,8 +21,11 @@ proc addPlugin*(manager: NetworkManager, name: string, plugin: Plugin) =
   plugin.name = name
   manager.plugins[name] = plugin
 
+proc getPlugin*(manager: NetworkManager, name: string): Plugin =
+  manager.plugins[name]
+
 proc getPlugin*[T](manager: NetworkManager, typ: typedesc[T]): T =
-  manager.plugis[name(typ)].T
+  manager.getPlugin(name(typ)).T
 
 iterator iterPlugins*(manager: NetworkManager): Plugin =
   for k, v in manager.plugins:

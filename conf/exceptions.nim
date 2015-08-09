@@ -20,10 +20,13 @@ proc newConfError*[T: ConfError](typ: typedesc[T], data: string, offset: int, ms
   result.filename = filename
 
 proc offsetInfo(data: string, offset: int): tuple[lineno: int, colno: int, line: string] =
-  let prev = data[0..offset]
+  if data == nil:
+    return (0, 0, nil)
+  let prev = data[0..offset-1]
   result.lineno = prev.count('\L') + 1
   let lineStart = prev.rfind('\L') + 1
   var lineEnd = data.find('\L', lineStart)
+
   if lineEnd == -1:
     lineEnd = data.len - 1
   else:
@@ -43,7 +46,7 @@ proc printError*(error: ref ConfError) =
   resetAttributes()
   echo error.msg
   resetAttributes()
-  if colno > 0:
+  if colno >= 0 and line != nil:
     write stdout, "  "
     echo line
     setForegroundColor(fgGreen)

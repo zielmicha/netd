@@ -38,19 +38,18 @@ iterator iterPlugins*(manager: NetworkManager): Plugin =
 template registerPlugin*(manager: NetworkManager, plugin: typedesc) =
   manager.addPlugin(name(plugin), plugin.create(manager))
 
+template callAllPlugins*(self, funcname) =
+  for plugin in self.manager.iterPlugins:
+    funcname(plugin)
+
 proc create*(t: typedesc[NetworkManager]): NetworkManager =
   new(result)
   result.plugins = initOrderedTable[string, Plugin]()
 
-proc loadConfig*(self: NetworkManager, filename: string): bool =
-  try:
-    let f = open(filename)
-    defer: f.close
-    self.config = parse(f.readAll(), filename, mainCommands)
-    return true
-  except ConfError:
-    (ref ConfError)(getCurrentException()).printError()
-    return false
+proc loadConfig*(self: NetworkManager, filename: string) =
+  let f = open(filename)
+  defer: f.close
+  self.config = parse(f.readAll(), filename, mainCommands)
 
 proc reload*(self: NetworkManager) =
   for name, plugin in self.plugins:

@@ -78,10 +78,6 @@ proc setupNamespaces(self: LinkManager) =
     if nsname notin namespaces:
       ipNetnsCreate(nsname)
 
-template callAllPlugins(self, funcname) =
-  for plugin in self.manager.iterPlugins:
-    funcname(plugin)
-
 proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
   result = @[]
   for plugin in self.manager.iterPlugins:

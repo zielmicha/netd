@@ -1,10 +1,12 @@
 import os
+import conf/exceptions
 import netd/core
 
 # Plugins
 import netd/link
 import netd/linkhw
 import netd/linkbridge
+import netd/addr
 import netd/addrstatic
 import netd/routing
 
@@ -22,7 +24,13 @@ proc main*() =
 
   manager.registerPlugin(LinkBridgePlugin)
   manager.registerPlugin(LinkHwPlugin)
+
+  manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)
 
-  if manager.loadConfig(config):
+
+  try:
+    manager.loadConfig(config)
     manager.run
+  except ConfError:
+    (ref ConfError)(getCurrentException()).printError()

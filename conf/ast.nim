@@ -13,6 +13,10 @@ type NodeType* = enum
 const unmeaningfulNodeTypes = {ntComment, ntWhitespace}
 const meaningfulNodeTypes* = {ntString, ntBracketed, ntColon, ntSemicolon, ntComma}
 
+type RootState* = ref object
+  data*: string
+  filename*: string
+
 type Node* = ref object {.acyclic.}
   originalValue*: string
   offset*: int
@@ -33,6 +37,7 @@ type LitteredItem* = ref object {.inheritable.}
   junkBefore*: seq[Node]
   junkAfter*: seq[Node]
   offset*: int
+  rootState*: RootState
 
 type Value* =  ref object {.acyclic.} of LitteredItem
   case typ*: ValueType
@@ -84,11 +89,12 @@ proc makeArg*(val: Value): Arg =
   result.typ = aValue
   result.value = val
 
-proc newLitteredItem*[T](item: var T, before: openarray[Node], after: openarray[Node], offset: int) =
+proc newLitteredItem*[T](item: var T, before: openarray[Node], after: openarray[Node], offset: int, rootState: RootState) =
   new(item)
   item.junkBefore = @before
   item.junkAfter = @after
   item.offset = offset
+  item.rootState = rootState
 
 # Exceptions
 
@@ -104,8 +110,7 @@ proc argToLitteredItem(arg: Arg): LitteredItem =
     return arg.value
 
 proc newConfError*(item: LitteredItem, msg: string): ref SemanticError =
-  # TODO
-  newConfError(SemanticError, offset=item.offset, msg=msg, data=nil, filename=nil)
+  newConfError(SemanticError, offset=item.offset, msg=msg, data=item.rootState.data, filename=item.rootState.filename)
 
 proc newConfError*(item: Arg, msg: string): ref SemanticError =
   newConfError(item.argToLitteredItem, msg)

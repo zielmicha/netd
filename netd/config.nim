@@ -34,6 +34,13 @@ let bridgeCommands = SuiteDef(commands: @[
   cmd("ports", multiValueArgDef())
 ]) & linkCommands
 
+# Veth
+
+let vethCommands = SuiteDef(commands: @[
+  cmd("left", @[suiteArgDef(name="body", suiteDef=linkCommands.valueThunk)]),
+  cmd("right", @[suiteArgDef(name="body", suiteDef=linkCommands.valueThunk)])
+])
+
 # Main suite
 
 proc linkCmd(): ArgsDef
@@ -42,6 +49,7 @@ let mainCommands* = SuiteDef(commands: @[
   cmd("namespace", singleValueArgDef().valueThunk),
   cmd("link", linkCmd.funcThunk),
   cmd("bridge", @[valueArgDef(name="abstractName"), suiteArgDef(suiteDef=bridgeCommands)]),
+  cmd("veth", @[valueArgDef(name="abstractName"), suiteArgDef(suiteDef=vethCommands)]),
 ])
 
 let linkMatchCommands = SuiteDef(commands: @[

@@ -1,21 +1,19 @@
 import conf/ast, conf/defs, conf/preparse, conf/exceptions
 import tables, strutils, sequtils
 
-type RootState = ref object
-  data: string
-  filename: string
-
 type ParserState = object
   root: RootState
   nodes: seq[Node]
   pos: int
   consumeEof: bool
+  startOffset: int
 
-proc initState(root: RootState, nodes: seq[Node]): ParserState =
+proc initState(root: RootState, nodes: seq[Node], startOffset: int): ParserState =
   result.root = root
   result.nodes = nodes
   result.pos = 0
   result.consumeEof = true
+  result.startOffset = startOffset
 
 proc splitBySemicolon(nodes: seq[Node]): seq[seq[Node]] =
   result = @[]
@@ -66,7 +64,7 @@ proc parseValue(state: var ParserState): Value =
   let (junkBefore, node) = state.consumeNode({ntString, ntBracketed})
   case node.typ
   of ntBracketed:
-    var newState = initState(state.root, node.children)
+    var newState = initState(state.root, node.children, node.offset)
     case node.originalValue
     of "(":
       # TODO: handle () by appending them to junkBefore and junkAfter
@@ -79,7 +77,7 @@ proc parseValue(state: var ParserState): Value =
 
     result.junkBefore = junkBefore & result.junkBefore
   of ntString:
-    newLitteredItem(result, junkBefore, @[], node.offset)
+    newLitteredItem(result, junkBefore, @[], node.offset, state.root)
     result.typ = ValueType.vtString
     result.originalValue = node.originalValue
   else: assert false
@@ -92,7 +90,7 @@ proc parseSuiteOuter(state: var ParserState, suiteDef: SuiteDef): Suite =
   if node.originalValue != "{":
     raise state.newConfError(ParseError, "expected '{', found '$1'" % node.originalValue)
 
-  var newState = initState(state.root, node.children)
+  var newState = initState(state.root, node.children, node.offset)
   result = newState.parseSuite(suiteDef)
   # include {} in junk
   result.junkBefore = junkBefore & makeSyntheticWhitespace("{") & result.junkBefore
@@ -155,7 +153,7 @@ proc parseCommand(state: var ParserState, suiteDef: SuiteDef): Command =
     raise state.newConfError(ParseError, "unexpected junk after command name")
 
   let argsDef = commands[name].unwrap
-  newLitteredItem(result, before=nameValue.junkBefore, after=[], offset=nameValue.offset)
+  newLitteredItem(result, before=nameValue.junkBefore, after=[], offset=nameValue.offset, rootState=state.root)
   result.name = name
   let (args, junkAfter) = state.parseArgs(argsDef)
   result.args = args
@@ -167,12 +165,14 @@ proc parseSuite(state: var ParserState, suiteDef: SuiteDef): Suite =
   assert state.pos == 0
 
   let commands = state.nodes.splitBySemicolon()
-  newLitteredItem(result, @[], @[], offset=0)
+  newLitteredItem(result, @[], @[], offset=state.startOffset, rootState=state.root)
   result.commands = @[]
+
+  var startOffset = state.startOffset
 
   for i in 0..commands.len-1:
     let nodes = commands[i]
-    var subState = initState(state.root, nodes)
+    var subState = initState(state.root, nodes, startOffset)
     let ret = peekUntilNode(subState)
     if ret.node == nil: # empty statement
       if i == commands.len - 1: # at the end of suite
@@ -182,6 +182,7 @@ proc parseSuite(state: var ParserState, suiteDef: SuiteDef): Suite =
         raise subState.newConfError(ParseError, "empty statement")
 
     result.commands.add parseCommand(subState, suiteDef)
+    startOffset = ret.node.offset
 
 proc parse*(data: string, filename: string, suiteDef: SuiteDef): Suite =
   let nodes = preparse(data)
@@ -189,5 +190,5 @@ proc parse*(data: string, filename: string, suiteDef: SuiteDef): Suite =
   new(rootState)
   rootState.data = data
   rootState.filename = filename
-  var state = initState(rootState, nodes)
+  var state = initState(rootState, nodes, 0)
   parseSuite(state, suiteDef)

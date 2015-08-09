@@ -8,9 +8,9 @@ proc create*(t: typedesc[AddrStaticPlugin], manager: NetworkManager): AddrStatic
   new(result)
   result.manager = manager
 
-method configureInterface*(self: AddrStaticPlugin, iface: ManagedInterface, config: Suite) =
+method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface, config: Suite): bool =
   if not config.hasCommandWithName("static"):
-    return
+    return false
 
   ipAddrFlush(iface.interfaceName)
 
@@ -26,3 +26,5 @@ method configureInterface*(self: AddrStaticPlugin, iface: ManagedInterface, conf
       # TODO: respect default_route
       # TODO: respect namespaces
       self.manager.getPlugin(RoutingManager).addDefaultGateway(gateway)
+
+  return true

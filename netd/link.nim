@@ -34,6 +34,8 @@ proc create*(t: typedesc[LinkManager], manager: NetworkManager): LinkManager =
   new(result)
   result.manager = manager
 
+# Callbacks
+
 method gatherInterfaces*(plugin: Plugin): seq[ManagedInterface] =
   ## Plugin should read configuration and return `ManagedInterface`s
   ## for all network interfaces that would be created from that
@@ -58,13 +60,10 @@ method gatherSubinterfaces*(plugin: Plugin, config: Suite, abstractParentName: s
   @[]
 
 method configureInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
-  ## Configure IPs and subinterfaces for given `ManagedInterface`
+  ## Configure misc and subinterfaces for given `ManagedInterface`
 
 method cleanupInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
   ## Perform potential cleanup actions on given interface.
-
-proc isRootNamespace*(namespaceName: string): bool =
-  namespaceName == nil or namespaceName == "root"
 
 # Gathered for all plugins:
 
@@ -88,6 +87,9 @@ proc listLivingInterfaces*(): seq[LivingInterface]
   ## Lists interfaces currently existing in the system
 
 # Utilities for link types impl
+
+proc isRootNamespace*(namespaceName: string): bool =
+  namespaceName == nil or namespaceName == "root"
 
 proc getRename*(identifier: string, suite: Suite): InterfaceName
 

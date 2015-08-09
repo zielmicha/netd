@@ -1,7 +1,7 @@
 # iproute2 cheatsheet: http://baturin.org/docs/iproute2
 # netlink overview: http://1984.lsi.us.es/~pablo/docs/spae.pdf
-import os, osproc
-import subprocess, commonnim, tables, strutils
+import os, osproc, tables, strutils, posix
+import subprocess, commonnim
 
 type
   ## Location of a kernel interface.
@@ -13,11 +13,42 @@ proc readSysfsProperty*(ifaceName: InterfaceName, propertyName: string): string 
 proc writeSysfsProperty*(ifaceName: InterfaceName, propertyName: string, data: string) =
   writeFile("/sys/class/net" / ifaceName.name / propertyName, data)
 
-iterator listSysfsInterfaces*(): InterfaceName =
+template inNamespace(namespaceName: string): stmt =
+  assert namespaceName == nil
+
+iterator listSysfsInterfacesInNs*(namespaceName: string): InterfaceName =
   # TODO: also walk other namespaces
+  inNamespace namespaceName
   for kind, path in walkDir("/sys/class/net"):
     let name = path.splitPath().tail
-    yield (nil, name)
+    yield (namespaceName, name)
+
+iterator listSysfsInterfaces*(): InterfaceName =
+  for iface in listSysfsInterfacesInNs(nil):
+    yield iface
+
+proc readlink(path: string): string =
+  var buf: array[512, char]
+  if readlink(path, buf, sizeof(buf)) < 0:
+    raiseOSError(osLastError())
+  return $buf
+
+proc sanitizeIfaceName(name: string): string =
+  if name == nil:
+    raise newException(ValueError, "nil")
+  if "/" in name:
+    raise newException(ValueError, "invalid argument %1" % [$name])
+  return name
+
+proc getMasterName*(interfaceName: InterfaceName): string =
+  inNamespace interfaceName.namespace
+  let basePath = "/sys/class/net/" & sanitizeIfaceName(interfaceName.name) & "/brport"
+
+  if not basePath.dirExists:
+    return nil
+
+  let brpath = readlink(basePath & "/bridge")
+  return brpath.splitPath().tail
 
 proc callIp*(namespaceName: string, args: openarray[string]) =
   assert namespaceName == nil or namespaceName == "root"
@@ -45,11 +76,18 @@ proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string]) =
   var cmd = @["ip", "link", "set", "dev", sanitizeArg(ifaceName.name)]
   for k, v in attrs:
     cmd.add(k)
-    cmd.add(sanitizeArg(v))
+    if v != nil:
+      cmd.add(sanitizeArg(v))
   callIp(ifaceName.namespace, cmd)
+
+proc ipLinkSet*(ifaceName: InterfaceName, attrs: openarray[(string, string)]) =
+  ipLinkSet(ifaceName, attrs.toTable)
 
 proc ipLinkUp*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "link", "set", "dev", sanitizeArg(ifaceName.name), "up"])
+
+proc ipLinkAdd*(ifaceName: InterfaceName, typ: string) =
+  callIp(ifaceName.namespace, ["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", "bridge"])
 
 proc ipAddrFlush*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "addr", "flush", "dev", sanitizeArg(ifaceName.name)])

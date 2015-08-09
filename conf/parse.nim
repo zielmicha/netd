@@ -111,6 +111,11 @@ proc parseArgs(state: var ParserState, argsDef: seq[ArgDef]): tuple[args: seq[Ar
 
     let argDef = argsDef[i]
 
+    if not argDef.required:
+      let hasMore = state.peekUntilNode().node != nil
+      if not hasMore:
+        break
+
     case argDef.typ
     of adtValue:
       result.args.add state.parseValue().makeArg

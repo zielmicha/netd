@@ -4,6 +4,7 @@ import netd/core
 # Plugins
 import netd/link
 import netd/linkhw
+import netd/linkbridge
 import netd/addrstatic
 import netd/routing
 
@@ -19,6 +20,7 @@ proc main*() =
   manager.registerPlugin(LinkManager)
   manager.registerPlugin(RoutingManager)
 
+  manager.registerPlugin(LinkBridgePlugin)
   manager.registerPlugin(LinkHwPlugin)
   manager.registerPlugin(AddrStaticPlugin)
 

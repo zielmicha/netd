@@ -23,18 +23,25 @@ let addressDefCommands = SuiteDef(commands: @[
 
 let linkCommands = SuiteDef(commands: @[
   cmd("name", singleValueArgDef(help="rename after link creation")),
-  cmd("namespace", singleValueArgDef()),
-  cmd("bridge_with", singleValueArgDef()),
-  cmd("bridge_master", emptyArgDef())
+  cmd("namespace", singleValueArgDef(help="move to network namespace after link creation")),
+  # cmd("bridge_with", singleValueArgDef()),
+  # cmd("bridge_master", emptyArgDef())
 ]) & addressDefCommands
+
+# Bridge
+
+let bridgeCommands = SuiteDef(commands: @[
+  cmd("ports", multiValueArgDef())
+]) & linkCommands
 
 # Main suite
 
 proc linkCmd(): ArgsDef
 
 let mainCommands* = SuiteDef(commands: @[
-  cmd("namespace", singleValueArgDef(help="move to network namespace after link creation").valueThunk),
-  cmd("link", linkCmd.funcThunk)
+  cmd("namespace", singleValueArgDef().valueThunk),
+  cmd("link", linkCmd.funcThunk),
+  cmd("bridge", @[valueArgDef(name="abstractName"), suiteArgDef(suiteDef=bridgeCommands)]),
 ])
 
 let linkMatchCommands = SuiteDef(commands: @[

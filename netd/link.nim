@@ -1,6 +1,6 @@
 import netd/core
 import conf/ast
-import commonnim, tables
+import commonnim, tables, options
 import iproute
 
 export iproute.InterfaceName
@@ -26,7 +26,6 @@ type
     ## Stored in 'alias' as 'isSynthetic'
 
   LinkManager* = ref object of Plugin
-    manager: NetworkManager
     managedDevices: seq[ManagedInterface]
 
   LivingInterface* = ManagedInterface
@@ -48,12 +47,21 @@ method setupInterfaces*(plugin: Plugin) =
   ## Here plugin should configure and (if neccessary) create
   ## devices it promised to create in gatherInterfaces.
 
+method beforeSetupInterfaces*(plugin: Plugin) =
+  ## Called before all setupInterfaces
+
+method afterSetupInterfaces*(plugin: Plugin) =
+  ## Called after all setupInterfaces
+
 method gatherSubinterfaces*(plugin: Plugin, config: Suite, abstractParentName: string): seq[ManagedInterface] =
   ## gatherInterfaces version for subinterfaces
   @[]
 
 method configureInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
   ## Configure IPs and subinterfaces for given `ManagedInterface`
+
+method cleanupInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
+  ## Perform potential cleanup actions on given interface.
 
 proc isRootNamespace*(namespaceName: string): bool =
   namespaceName == nil or namespaceName == "root"
@@ -69,6 +77,10 @@ proc configureInterfaceAll*(self: LinkManager, iface: ManagedInterface, config: 
   for plugin in self.manager.iterPlugins:
     plugin.configureInterface(iface, config)
 
+proc cleanupInterfaceAll*(self: LinkManager, iface: ManagedInterface, config: Suite) =
+  for plugin in self.manager.iterPlugins:
+    plugin.cleanupInterface(iface, config)
+
 proc interfaceName*(iface: ManagedInterface): InterfaceName =
   (namespace: iface.namespaceName, name: iface.kernelName)
 
@@ -77,8 +89,14 @@ proc listLivingInterfaces*(): seq[LivingInterface]
 
 # Utilities for link types impl
 
+proc getRename*(identifier: string, suite: Suite): InterfaceName
+
 proc applyRename*(interfaceName: InterfaceName, suite: Suite): InterfaceName
   ## Rename and move interface according to the suite.
+
+proc applyRename*(interfaceName: InterfaceName, target: InterfaceName)
+
+proc findLivingInterface*(self: LinkManager, abstractName: string): Option[InterfaceName]
 
 proc writeAliasProperties*(ifaceName: InterfaceName, prop: Table[string, string])
 
@@ -95,10 +113,5 @@ proc gatherInterfacesRecursive*(self: LinkManager, ifaces: ManagedInterfaceWithC
     let (iface, config) = v
     result.add iface
     result &= self.gatherSubinterfacesAll(config, iface.abstractName)
-
-proc setupInterfacesRecursive*(self: LinkManager, ifaces: ManagedInterfaceWithConfigSeq) =
-  for v in ifaces:
-    let (iface, config) = v
-    self.configureInterfaceAll(iface, config)
 
 include netd/linkimpl

@@ -3,7 +3,6 @@ import conf/ast
 import commonnim
 
 type AddrStaticPlugin* = ref object of Plugin
-    manager: NetworkManager
 
 proc create*(t: typedesc[AddrStaticPlugin], manager: NetworkManager): AddrStaticPlugin =
   new(result)

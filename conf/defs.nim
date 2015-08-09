@@ -48,6 +48,14 @@ type
   SuiteDef* = ref object
     commands*: seq[CmdDef]
 
+proc funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
+  result.isValue = false
+  result.function = function
+
+converter valueThunk*[T](val: T): ParserThunk[T] =
+  result.isValue = true
+  result.value = val
+
 proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: string=nil): ArgDef =
   new(result)
   result.typ = adtValue
@@ -55,6 +63,12 @@ proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: s
   result.help = help
   result.name = name
   result.valueType = valueType
+
+proc moreArgsArgDef*(function: (proc(): ArgsDef)): ArgDef =
+  new(result)
+  result.required = false
+  result.typ = adtMoreArgs
+  result.args = function.funcThunk
 
 proc suiteArgDef*(suiteDef: ParserThunk[SuiteDef], name="body", required: bool=true, help: string=nil, isCommand: bool=false): ArgDef =
   new(result)
@@ -64,13 +78,11 @@ proc suiteArgDef*(suiteDef: ParserThunk[SuiteDef], name="body", required: bool=t
   result.name = name
   result.suiteDef = suiteDef
 
-proc funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
-  result.isValue = false
-  result.function = function
-
-converter valueThunk*[T](val: T): ParserThunk[T] =
-  result.isValue = true
-  result.value = val
+proc multiValueArgDef*(valueType=vtString, valueName="value", help: string=nil): ArgsDef =
+  var ret: ArgsDef
+  ret = @[valueArgDef(name=valueName, valueType=valueType, help=help),
+          moreArgsArgDef(proc(): ArgsDef = ret)]
+  return ret
 
 proc singleValueArgDef*(valueType=vtString, valueName="value", help: string=nil): ArgsDef =
   @[valueArgDef(name=valueName, valueType=valueType, help=help)]

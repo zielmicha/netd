@@ -2,14 +2,20 @@ import netd/iproute
 import conf/ast
 import tables, strutils, sequtils
 
-proc applyRename(interfaceName: InterfaceName, suite: Suite): InterfaceName =
+proc getRename*(identifier: string, suite: Suite): InterfaceName =
   let newName = suite.singleValue("name", required=false).stringValue
   let namespace = suite.singleValue("namespace", required=false).stringValue
-  let name = if newName != nil: newName else: interfaceName.name
-  let isAlreadyOk = (namespace == interfaceName.namespace) and (newName == nil or newName == interfaceName.name)
-  if not isAlreadyOk:
-    rename(interfaceName, name, namespace)
+  let name = if newName != nil: newName else: identifier
   return (namespace: namespace, name: name)
+
+proc applyRename(interfaceName: InterfaceName, target: InterfaceName) =
+  let isAlreadyOk = (target.namespace == interfaceName.namespace) and (target.name == interfaceName.name)
+  if not isAlreadyOk:
+    rename(interfaceName, target.name, target.namespace)
+
+proc applyRename(interfaceName: InterfaceName, suite: Suite): InterfaceName =
+  result = getRename(interfaceName.name, suite)
+  applyRename(interfaceName, result)
 
 proc readAliasProperties(ifaceName: InterfaceName): Table[string, string] =
   result = initTable[string, string]()
@@ -42,18 +48,24 @@ proc listLivingInterfaces(): seq[LivingInterface] =
   for name in listSysfsInterfaces():
     result.add infoAboutLivingInterface(name)
 
+proc findLivingInterface(self: LinkManager, abstractName: string): Option[InterfaceName] =
+  for candidate in listLivingInterfaces():
+    if candidate.abstractName == abstractName:
+      return some(candidate.interfaceName)
+
+  return none(InterfaceName)
+
 proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
   let allInterfaces = listLivingInterfaces()
-  var managedNames = initCountTable[InterfaceName]()
+  var managedNames = initCountTable[string]()
 
   for iface in managed:
     echo "ManagedInterface $1" % $iface
-    managedNames.inc iface.interfaceName
+    managedNames.inc iface.abstractName
 
   for iface in allInterfaces:
-    let interfaceName: InterfaceName = (namespace: iface.namespaceName, name: iface.kernelName)
-    if iface.isSynthetic and managedNames[interfaceName] == 0:
-      ipLinkDel(interfaceName)
+    if iface.isSynthetic and managedNames[iface.abstractName] == 0:
+      ipLinkDel(iface.interfaceName)
 
 proc setupNamespaces(self: LinkManager) =
   let namespaces = toSeq(listNamespaces())
@@ -66,14 +78,14 @@ proc setupNamespaces(self: LinkManager) =
     if nsname notin namespaces:
       ipNetnsCreate(nsname)
 
+template callAllPlugins(self, funcname) =
+  for plugin in self.manager.iterPlugins:
+    funcname(plugin)
+
 proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
   result = @[]
   for plugin in self.manager.iterPlugins:
     result &= plugin.gatherInterfaces()
-
-proc setupInterfacesAll(self: LinkManager) =
-  for plugin in self.manager.iterPlugins:
-    plugin.setupInterfaces()
 
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
@@ -81,4 +93,6 @@ method reload(self: LinkManager) =
   let managedInterfaces = self.gatherInterfacesAll()
   echo "managed interfaces: ", $managedInterfaces
   removeUnusedInterfaces(managedInterfaces)
-  self.setupInterfacesAll()
+  self.callAllPlugins(beforeSetupInterfaces)
+  self.callAllPlugins(setupInterfaces)
+  self.callAllPlugins(afterSetupInterfaces)

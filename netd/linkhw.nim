@@ -5,7 +5,6 @@ import nre, options
 
 type
   LinkHwPlugin* = ref object of Plugin
-    manager: NetworkManager
 
 proc create*(t: typedesc[LinkHwPlugin], manager: NetworkManager): LinkHwPlugin =
   new(result)
@@ -18,7 +17,7 @@ proc matchInterfacesByDeviceName(name: string): seq[LivingInterface] =
   for miface in listLivingInterfaces():
     var iface = miface
     if iface.isSynthetic:
-      # This can't be a hardware interface, it's marked as created by netd
+      # This can't be a hardware interface, it's marked as created by us
       continue
 
     if iface.abstractName == nil and not iface.namespaceName.isRootNamespace:
@@ -51,6 +50,7 @@ proc gatherInterfacesWithConfigs(self: LinkHwPlugin): ManagedInterfaceWithConfig
 
     for livingIface in matchInterfaces(matcher):
       let interfaceName: InterfaceName = livingIface.interfaceName
+      # TODO: do this in setupInterfaces
       writeAliasProperties(interfaceName,
                            makeAliasProperties(isSynthetic=false, abstractName=livingIface.abstractName))
       let newName: InterfaceName = interfaceName.applyRename(body)
@@ -63,7 +63,10 @@ proc gatherInterfacesWithConfigs(self: LinkHwPlugin): ManagedInterfaceWithConfig
       result.add((iface: managedInterface, config: body))
 
 method gatherInterfaces*(self: LinkHwPlugin): seq[ManagedInterface] =
-  self.manager.getPlugin(LinkManager).gatherInterfacesRecursive(self.gatherInterfacesWithConfigs)
+  self.getPlugin(LinkManager).gatherInterfacesRecursive(self.gatherInterfacesWithConfigs)
 
 method setupInterfaces*(self: LinkHwPlugin) =
-  self.manager.getPlugin(LinkManager).setupInterfacesRecursive(self.gatherInterfacesWithConfigs)
+  for v in self.gatherInterfacesWithConfigs():
+    let (iface, config) = v
+    self.getPlugin(LinkManager).cleanupInterfaceAll(iface, config)
+    self.getPlugin(LinkManager).configureInterfaceAll(iface, config)

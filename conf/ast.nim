@@ -130,6 +130,9 @@ proc stringValue*(n: Value): string =
     return originalValue[1..^1]
   return originalValue
 
+proc stringValue*(n: Arg): string =
+  return n.value.stringValue
+
 proc indent(t: string): string =
   t.replace("\L", "\L  ")
 

@@ -20,8 +20,8 @@ method configureInterface*(self: AddrStaticPlugin, iface: ManagedInterface, conf
     let address = body.singleValue("address", required=true).stringValue
     let gateway = body.singleValue("gateway", required=false).stringValue
 
-    ipLinkUp(iface.interfaceName)
     ipAddrAdd(iface.interfaceName, address)
+    ipLinkUp(iface.interfaceName)
 
     if gateway != nil:
       # TODO: respect default_route

@@ -36,34 +36,10 @@ proc namespaceName(name: string): string =
   else:
     return name
 
-proc delete*(ifaceName: InterfaceName) =
-  callIp(ifaceName.namespace, ["ip", "link", "del", "dev", sanitizeArg(ifaceName.name)])
-
-iterator listNamespaces*(): string =
-  for kind, path in walkDir("/var/run/netns"):
-    let name = path.splitPath().tail
-    yield name
-
-proc createNamespace*(name: string) =
-  callIp(nil, ["ip", "netns", "add", sanitizeArg(name)])
-
-proc createRootNamespace*() =
-  let nsFile = "/var/run/netns/root"
-  writeFile(nsFile, "")
-  checkCall(["mount", "--bind", "/proc/self/ns/net", nsFile], echo=true)
-
-proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string])
-
-proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
-  var attrs = initTable[string, string]()
-  if name != nil:
-    attrs["name"] = name
-
-  attrs["netns"] = namespaceName(namespace)
-
-  ipLinkSet(ifaceName, attrs)
-
 # Direct
+
+proc ipLinkDel*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["ip", "link", "del", "dev", sanitizeArg(ifaceName.name)])
 
 proc ipLinkSet*(ifaceName: InterfaceName, attrs: Table[string, string]) =
   var cmd = @["ip", "link", "set", "dev", sanitizeArg(ifaceName.name)]
@@ -84,3 +60,27 @@ proc ipAddrAdd*(ifaceName: InterfaceName, address: string) =
 proc ipRouteAddDefault*(via: string) =
   # FIXME: what about namespace?
   callIp(nil, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
+
+proc ipNetnsCreate*(name: string) =
+  callIp(nil, ["ip", "netns", "add", sanitizeArg(name)])
+
+proc createRootNamespace*() =
+  let nsFile = "/var/run/netns/root"
+  writeFile(nsFile, "")
+  checkCall(["mount", "--bind", "/proc/self/ns/net", nsFile], echo=true)
+
+# "High-level"
+
+iterator listNamespaces*(): string =
+  for kind, path in walkDir("/var/run/netns"):
+    let name = path.splitPath().tail
+    yield name
+
+proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
+  var attrs = initTable[string, string]()
+  if name != nil:
+    attrs["name"] = name
+
+  attrs["netns"] = namespaceName(namespace)
+
+  ipLinkSet(ifaceName, attrs)

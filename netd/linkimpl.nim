@@ -53,13 +53,18 @@ proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
   for iface in allInterfaces:
     let interfaceName: InterfaceName = (namespace: iface.namespaceName, name: iface.kernelName)
     if iface.isSynthetic and managedNames[interfaceName] == 0:
-      delete(interfaceName)
+      ipLinkDel(interfaceName)
 
-proc setupRootNs() =
+proc setupNamespaces(self: LinkManager) =
   let namespaces = toSeq(listNamespaces())
   echo "existing network namespaces: ", $namespaces
   if "root" notin namespaces:
     createRootNamespace()
+
+  for cmd in self.manager.config.commandsWithName("namespace"):
+    let nsname = cmd.args.unpackSeq1.stringValue
+    if nsname notin namespaces:
+      ipNetnsCreate(nsname)
 
 proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
   result = @[]
@@ -72,7 +77,7 @@ proc setupInterfacesAll(self: LinkManager) =
 
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
-  setupRootNs()
+  self.setupNamespaces()
   let managedInterfaces = self.gatherInterfacesAll()
   echo "managed interfaces: ", $managedInterfaces
   removeUnusedInterfaces(managedInterfaces)

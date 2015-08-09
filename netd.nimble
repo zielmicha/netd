@@ -10,4 +10,4 @@ bin           = "netd"
 
 [Deps]
 Requires: "nim >= 0.11.2"
-#Requires: "dbus >= 0.0.1"
+Requires: "dbus >= 0.0.1"

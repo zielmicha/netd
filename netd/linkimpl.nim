@@ -65,7 +65,9 @@ proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
 
   for iface in allInterfaces:
     if iface.isSynthetic and managedNames[iface.abstractName] == 0:
-      ipLinkDel(iface.interfaceName)
+      # check if still exists, deleting one side of veth might have deleted other
+      if linkExists(iface.interfaceName):
+        ipLinkDel(iface.interfaceName)
 
 proc setupNamespaces(self: LinkManager) =
   let namespaces = toSeq(listNamespaces())

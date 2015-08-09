@@ -50,8 +50,13 @@ proc getMasterName*(interfaceName: InterfaceName): string =
   let brpath = readlink(basePath & "/bridge")
   return brpath.splitPath().tail
 
+proc linkExists*(interfaceName: InterfaceName): bool =
+  inNamespace interfaceName.namespace
+  return dirExists("/sys/class/net/" & sanitizeIfaceName(interfaceName.name))
+
 proc callIp*(namespaceName: string, args: openarray[string]) =
   assert namespaceName == nil or namespaceName == "root"
+  stdout.write "($1) " % (if namespaceName == nil: "root" else: namespaceName)
   checkCall(args, echo=true)
 
 proc sanitizeArg(val: string): string =
@@ -88,6 +93,9 @@ proc ipLinkUp*(ifaceName: InterfaceName) =
 
 proc ipLinkAdd*(ifaceName: InterfaceName, typ: string) =
   callIp(ifaceName.namespace, ["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", "bridge"])
+
+proc ipLinkAddVeth*(namespaceName: string, leftName: string, rightName: string) =
+  callIp(namespaceName, ["ip", "link", "add", "dev", sanitizeArg(leftName), "type", "veth", "peer", "name", rightName])
 
 proc ipAddrFlush*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "addr", "flush", "dev", sanitizeArg(ifaceName.name)])

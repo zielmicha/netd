@@ -6,7 +6,7 @@ proc getRename*(identifier: string, suite: Suite): InterfaceName =
   let newName = suite.singleValue("name", required=false).stringValue
   let namespace = suite.singleValue("namespace", required=false).stringValue
   let name = if newName != nil: newName else: identifier
-  return (namespace: namespace, name: name)
+  return (namespace: namespace.nsNilToRoot, name: name)
 
 proc applyRename(interfaceName: InterfaceName, target: InterfaceName) =
   let isAlreadyOk = (target.namespace == interfaceName.namespace) and (target.name == interfaceName.name)
@@ -43,20 +43,26 @@ proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
   result.abstractName = props["abstractName"]
   result.isSynthetic = props["isSynthetic"] == "true"
 
-proc listLivingInterfaces(): seq[LivingInterface] =
-  result = @[]
-  for name in listSysfsInterfaces():
-    result.add infoAboutLivingInterface(name)
+proc listLivingInterfaces*(self: LinkManager): seq[LivingInterface] =
+  if self.livingInterfacesCache == nil:
+    self.livingInterfacesCache = @[]
+    for name in listSysfsInterfaces():
+      self.livingInterfacesCache.add infoAboutLivingInterface(name)
 
-proc findLivingInterface(self: LinkManager, abstractName: string): Option[InterfaceName] =
-  for candidate in listLivingInterfaces():
+  return self.livingInterfacesCache
+
+proc invalidateInterfaceCache(self: LinkManager) =
+  self.livingInterfacesCache = nil
+
+proc findLivingInterface(interfaces: seq[LivingInterface], abstractName: string): Option[InterfaceName] =
+  for candidate in interfaces:
     if candidate.abstractName == abstractName:
       return some(candidate.interfaceName)
 
   return none(InterfaceName)
 
-proc removeUnusedInterfaces(managed: seq[ManagedInterface]) =
-  let allInterfaces = listLivingInterfaces()
+proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
+  let allInterfaces = listLivingInterfaces(self)
   var managedNames = initCountTable[string]()
 
   for iface in managed:
@@ -76,7 +82,7 @@ proc setupNamespaces(self: LinkManager) =
     createRootNamespace()
 
   for cmd in self.manager.config.commandsWithName("namespace"):
-    let nsname = cmd.args.unpackSeq1.stringValue
+    let nsname = cmd.args.unpackSeq1.stringValue.nsNilToRoot
     if nsname notin namespaces:
       ipNetnsCreate(nsname)
 
@@ -88,9 +94,17 @@ proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
 method reload(self: LinkManager) =
   echo "reloading LinkManager"
   self.setupNamespaces()
+
+  self.invalidateInterfaceCache()
   let managedInterfaces = self.gatherInterfacesAll()
   echo "managed interfaces: ", $managedInterfaces
-  removeUnusedInterfaces(managedInterfaces)
+  self.removeUnusedInterfaces(managedInterfaces)
+
+  self.invalidateInterfaceCache()
   self.callAllPlugins(beforeSetupInterfaces)
+
+  self.invalidateInterfaceCache()
   self.callAllPlugins(setupInterfaces)
+
+  self.invalidateInterfaceCache()
   self.callAllPlugins(afterSetupInterfaces)

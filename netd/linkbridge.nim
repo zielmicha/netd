@@ -48,11 +48,13 @@ method beforeSetupInterfaces*(self: LinkBridgePlugin) =
         ipLinkSet(potentialPort, {"nomaster": nil.string})
 
 method setupInterfaces*(self: LinkBridgePlugin) =
+  let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
+
   for v in self.gatherInterfacesWithConfigs():
     let (iface, config) = v
 
     let interfaceName = iface.interfaceName
-    let existing = self.getPlugin(LinkManager).findLivingInterface(iface.abstractName)
+    let existing = interfaces.findLivingInterface(iface.abstractName)
     if existing.isNone:
       ipLinkAdd(interfaceName, "bridge")
     else:
@@ -64,14 +66,16 @@ method setupInterfaces*(self: LinkBridgePlugin) =
     self.getPlugin(LinkManager).configureInterfaceAll(iface, config)
 
 method afterSetupInterfaces*(self: LinkBridgePlugin) =
+  let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
+
   for v in self.gatherInterfacesWithConfigs():
     let (iface, config) = v
     let bridgeName = iface.interfaceName
 
     for port in config.getPorts:
-      let interfaceNameOpt = self.getPlugin(LinkManager).findLivingInterface(port)
+      let interfaceNameOpt = findLivingInterface(interfaces, port)
       # if port name is not found, assume that
-      let interfaceName = if interfaceNameOpt.isNone: (namespace: nil.string, name: port)
+      let interfaceName = if interfaceNameOpt.isNone: (namespace: RootNamespace, name: port)
                           else: interfaceNameOpt.get
 
       if interfaceName.namespace != interfaceName.namespace:

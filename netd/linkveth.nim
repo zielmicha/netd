@@ -43,11 +43,13 @@ proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
   #self.getPlugin(LinkManager).gatherInterfacesRecursive(self.gatherInterfacesWithConfigs)
 
 method setupInterfaces*(self: LinkVethPlugin) =
+  let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
+
   for v in self.gatherInterfacesWithConfigs():
     let (sides, config) = v
 
     let livingSides = [0, 1].map(proc(i: int): auto =
-      self.getPlugin(LinkManager).findLivingInterface(sides[i].abstractName))
+      findLivingInterface(interfaces, sides[i].abstractName))
 
     let leftInterfaceName = sides[0].interfaceName
     let rightInterfaceName = sides[1].interfaceName

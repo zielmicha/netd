@@ -19,7 +19,7 @@ type
 
     kernelName*: string ## User device name (the one kernel uses)
 
-    namespaceName*: string ## Network namespace name
+    namespaceName*: NamespaceName ## Network namespace name
 
     isSynthetic*: bool ## Was it created by netd?
     ## Synthetic interfaces will be deleted when they are orophaned by their plugin.
@@ -27,6 +27,7 @@ type
 
   LinkManager* = ref object of Plugin
     managedDevices: seq[ManagedInterface]
+    livingInterfacesCache: seq[LivingInterface]
 
   LivingInterface* = ManagedInterface
 
@@ -83,7 +84,7 @@ proc cleanupInterfaceAll*(self: LinkManager, iface: ManagedInterface, config: Su
 proc interfaceName*(iface: ManagedInterface): InterfaceName =
   (namespace: iface.namespaceName, name: iface.kernelName)
 
-proc listLivingInterfaces*(): seq[LivingInterface]
+proc listLivingInterfaces*(self: LinkManager): seq[LivingInterface]
   ## Lists interfaces currently existing in the system
 
 # Utilities for link types impl
@@ -98,7 +99,7 @@ proc applyRename*(interfaceName: InterfaceName, suite: Suite): InterfaceName
 
 proc applyRename*(interfaceName: InterfaceName, target: InterfaceName)
 
-proc findLivingInterface*(self: LinkManager, abstractName: string): Option[InterfaceName]
+proc findLivingInterface*(interfaces: seq[LivingInterface], abstractName: string): Option[InterfaceName]
 
 proc writeAliasProperties*(ifaceName: InterfaceName, prop: Table[string, string])
 

@@ -25,3 +25,4 @@ method configureInterface*(self: AddrManager, iface: ManagedInterface, config: S
 
   if not taken:
     ipAddrFlush(iface.interfaceName)
+    ipLinkUp(iface.interfaceName)

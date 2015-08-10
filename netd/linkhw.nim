@@ -10,11 +10,11 @@ proc create*(t: typedesc[LinkHwPlugin], manager: NetworkManager): LinkHwPlugin =
   new(result)
   result.manager = manager
 
-proc matchInterfacesByDeviceName(name: string): seq[LivingInterface] =
+proc matchInterfacesByDeviceName(interfaces: seq[LivingInterface], name: string): seq[LivingInterface] =
   result = @[]
   let regexp = re(name & "$")
   # Match interfaces
-  for miface in listLivingInterfaces():
+  for miface in interfaces:
     var iface = miface
     if iface.isSynthetic:
       # This can't be a hardware interface, it's marked as created by us
@@ -32,15 +32,17 @@ proc matchInterfacesByDeviceName(name: string): seq[LivingInterface] =
     if iface.abstractName.match(regexp).isSome:
       result.add iface
 
-proc matchInterfaces(matcher: Command): seq[LivingInterface] =
+proc matchInterfaces(interfaces: seq[LivingInterface], matcher: Command): seq[LivingInterface] =
   case matcher.name:
   of "dev":
     let name = unpackSeq1(matcher.args).value.stringValue
-    return matchInterfacesByDeviceName(name)
+    return matchInterfacesByDeviceName(interfaces, name)
   else: assert false
 
 proc gatherInterfacesWithConfigs(self: LinkHwPlugin): ManagedInterfaceWithConfigSeq =
   result = @[]
+
+  let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
 
   let configRoot = self.manager.config
   for topCommand in configRoot.commandsWithName("link"):
@@ -48,7 +50,7 @@ proc gatherInterfacesWithConfigs(self: LinkHwPlugin): ManagedInterfaceWithConfig
     let matcher = matcherVal.command
     let body = bodyVal.suite
 
-    for livingIface in matchInterfaces(matcher):
+    for livingIface in matchInterfaces(interfaces, matcher):
       let interfaceName: InterfaceName = livingIface.interfaceName
       # TODO: do this in setupInterfaces
       writeAliasProperties(interfaceName,

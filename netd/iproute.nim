@@ -1,37 +1,91 @@
 # iproute2 cheatsheet: http://baturin.org/docs/iproute2
 # netlink overview: http://1984.lsi.us.es/~pablo/docs/spae.pdf
-import os, osproc, tables, strutils, posix
+import os, osproc, tables, strutils, posix, morelinux
 import subprocess, commonnim
 
 type
+  NamespaceName* = string not nil
   ## Location of a kernel interface.
-  InterfaceName* = tuple[namespace: string, name: string]
+  InterfaceName* = tuple[namespace: NamespaceName, name: string]
+
+type NsRestoreData = tuple[mntFd: cint, netFd: cint]
+
+const RootNamespace*: NamespaceName = "root"
+
+proc nsNilToRoot*(name: string): NamespaceName =
+  if name == nil:
+    return RootNamespace
+  else:
+    return name
+
+proc saveNamespace(): NsRestoreData =
+  result.mntFd = saveNs(nsMnt)
+  result.netFd = saveNs(nsNet)
+
+proc nsDbg() =
+  echo "nsDebug"
+  for kind, path in walkDir("/sys/class/net"):
+    echo path
+
+proc enterNamespace(namespaceName: NamespaceName) =
+  setNetNs(namespaceName)
+  unshare(nsMnt)
+  remountSys()
+
+proc restoreNamespace(data: NsRestoreData) =
+  restoreNs(nsNet, data.netFd)
+  restoreNs(nsMnt, data.mntFd)
+
+var currentNs {.threadvar.}: string
+
+template inNamespace(namespaceName: NamespaceName, body: stmt): stmt {.immediate.} =
+  if currentNs == nil:
+    currentNs = "root"
+
+  let doEnter: bool = namespaceName != currentNs
+  let prevNs = currentNs
+  var restoreData: NsRestoreData
+  if doEnter:
+    restoreData = saveNamespace()
+
+  try:
+    if doEnter:
+      currentNs = namespaceName
+      enterNamespace(namespaceName)
+    body
+  finally:
+    if doEnter:
+      currentNs = prevNs
+      restoreNamespace(restoreData)
 
 proc readSysfsProperty*(ifaceName: InterfaceName, propertyName: string): string =
-  readFileSysfs("/sys/class/net" / ifaceName.name / propertyName)
+  inNamespace ifaceName.namespace:
+    return readFileSysfs("/sys/class/net" / ifaceName.name / propertyName)
 
 proc writeSysfsProperty*(ifaceName: InterfaceName, propertyName: string, data: string) =
-  writeFile("/sys/class/net" / ifaceName.name / propertyName, data)
+  inNamespace ifaceName.namespace:
+    writeFile("/sys/class/net" / ifaceName.name / propertyName, data)
 
-template inNamespace(namespaceName: string): stmt =
-  assert namespaceName == nil
+proc listSysfsInterfacesInNs*(namespaceName: NamespaceName): seq[InterfaceName] =
+  result = @[]
+  inNamespace namespaceName:
+    for kind, path in walkDir("/sys/class/net"):
+      let name = path.splitPath().tail
+      result.add((namespaceName, name))
 
-iterator listSysfsInterfacesInNs*(namespaceName: string): InterfaceName =
-  # TODO: also walk other namespaces
-  inNamespace namespaceName
-  for kind, path in walkDir("/sys/class/net"):
+iterator listNamespaces*(): NamespaceName =
+  for kind, path in walkDir("/var/run/netns"):
     let name = path.splitPath().tail
-    yield (namespaceName, name)
+    if name != nil:
+      yield name
+    else:
+      assert false
 
 iterator listSysfsInterfaces*(): InterfaceName =
-  for iface in listSysfsInterfacesInNs(nil):
-    yield iface
-
-proc readlink(path: string): string =
-  var buf: array[512, char]
-  if readlink(path, buf, sizeof(buf)) < 0:
-    raiseOSError(osLastError())
-  return $buf
+  # TODO: also walk other namespaces
+  for namespace in listNamespaces():
+    for iface in listSysfsInterfacesInNs(namespace):
+      yield iface
 
 proc sanitizeIfaceName(name: string): string =
   if name == nil:
@@ -41,23 +95,23 @@ proc sanitizeIfaceName(name: string): string =
   return name
 
 proc getMasterName*(interfaceName: InterfaceName): string =
-  inNamespace interfaceName.namespace
-  let basePath = "/sys/class/net/" & sanitizeIfaceName(interfaceName.name) & "/brport"
+  inNamespace interfaceName.namespace:
+    let basePath = "/sys/class/net/" & sanitizeIfaceName(interfaceName.name) & "/brport"
 
-  if not basePath.dirExists:
-    return nil
+    if not basePath.dirExists:
+      return nil
 
-  let brpath = readlink(basePath & "/bridge")
-  return brpath.splitPath().tail
+    let brpath = readlink(basePath & "/bridge")
+    return brpath.splitPath().tail
 
 proc linkExists*(interfaceName: InterfaceName): bool =
-  inNamespace interfaceName.namespace
-  return dirExists("/sys/class/net/" & sanitizeIfaceName(interfaceName.name))
+  inNamespace interfaceName.namespace:
+    return dirExists("/sys/class/net/" & sanitizeIfaceName(interfaceName.name))
 
-proc callIp*(namespaceName: string, args: openarray[string]) =
-  assert namespaceName == nil or namespaceName == "root"
-  stdout.write "($1) " % (if namespaceName == nil: "root" else: namespaceName)
-  checkCall(args, echo=true)
+proc callIp*(namespaceName: NamespaceName, args: openarray[string]) =
+  inNamespace namespaceName:
+    stdout.write "($1) " % namespaceName
+    checkCall(args, echo=true)
 
 proc sanitizeArg(val: string): string =
   if val == nil:
@@ -94,7 +148,7 @@ proc ipLinkUp*(ifaceName: InterfaceName) =
 proc ipLinkAdd*(ifaceName: InterfaceName, typ: string) =
   callIp(ifaceName.namespace, ["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", "bridge"])
 
-proc ipLinkAddVeth*(namespaceName: string, leftName: string, rightName: string) =
+proc ipLinkAddVeth*(namespaceName: NamespaceName, leftName: string, rightName: string) =
   callIp(namespaceName, ["ip", "link", "add", "dev", sanitizeArg(leftName), "type", "veth", "peer", "name", rightName])
 
 proc ipAddrFlush*(ifaceName: InterfaceName) =
@@ -105,10 +159,10 @@ proc ipAddrAdd*(ifaceName: InterfaceName, address: string) =
 
 proc ipRouteAddDefault*(via: string) =
   # FIXME: what about namespace?
-  callIp(nil, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
+  callIp(RootNamespace, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
 
 proc ipNetnsCreate*(name: string) =
-  callIp(nil, ["ip", "netns", "add", sanitizeArg(name)])
+  callIp(RootNamespace, ["ip", "netns", "add", sanitizeArg(name)])
 
 proc createRootNamespace*() =
   let nsFile = "/var/run/netns/root"
@@ -116,11 +170,6 @@ proc createRootNamespace*() =
   checkCall(["mount", "--bind", "/proc/self/ns/net", nsFile], echo=true)
 
 # "High-level"
-
-iterator listNamespaces*(): string =
-  for kind, path in walkDir("/var/run/netns"):
-    let name = path.splitPath().tail
-    yield name
 
 proc rename*(ifaceName: InterfaceName, name: string, namespace: string) =
   var attrs = initTable[string, string]()

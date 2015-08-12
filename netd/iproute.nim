@@ -157,9 +157,9 @@ proc ipAddrFlush*(ifaceName: InterfaceName) =
 proc ipAddrAdd*(ifaceName: InterfaceName, address: string) =
   callIp(ifaceName.namespace, ["ip", "addr", "add", "dev", sanitizeArg(ifaceName.name), sanitizeArg(address)])
 
-proc ipRouteAddDefault*(via: string) =
+proc ipRouteAddDefault*(namespace: NamespaceName, via: string) =
   # FIXME: what about namespace?
-  callIp(RootNamespace, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
+  callIp(namespace, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
 
 proc ipNetnsCreate*(name: string) =
   callIp(RootNamespace, ["ip", "netns", "add", sanitizeArg(name)])

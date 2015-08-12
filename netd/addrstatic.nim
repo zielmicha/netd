@@ -1,4 +1,4 @@
-import netd/core, netd/link, netd/iproute, netd/routing
+import netd/core, netd/link, netd/iproute, netd/routing, ipaddress
 import conf/ast
 import commonnim
 
@@ -16,15 +16,19 @@ method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface
 
   for staticCommand in config.commandsWithName("static"):
     let body = staticCommand.args.unpackSeq1().suite
-    let address = body.singleValue("address", required=true).stringValue
+    let addressStr = body.singleValue("address", required=true).stringValue
     let gateway = body.singleValue("gateway", required=false).stringValue
 
-    ipAddrAdd(iface.interfaceName, address)
+    let ipInterface = addressStr.parseInterface
+
+    ipAddrAdd(iface.interfaceName, $ipInterface)
     ipLinkUp(iface.interfaceName)
 
     if gateway != nil:
       # TODO: respect default_route
       # TODO: respect namespaces
-      self.manager.getPlugin(RoutingManager).addDefaultGateway(gateway)
+      self.manager.getPlugin(RoutingManager).addDefaultGateway(via=gateway,
+                                                               forIp=ipInterface.address,
+                                                               namespace=iface.namespaceName)
 
   return true

@@ -1,4 +1,4 @@
 nimcache/
 *_tests
 /conf_example?
-/bin
+/bin/netd

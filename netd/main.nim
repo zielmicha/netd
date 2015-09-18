@@ -1,6 +1,7 @@
 import os
 import conf/exceptions
 import netd/core
+import dbus, dbus/loop
 
 # Plugins
 import netd/link
@@ -10,6 +11,7 @@ import netd/linkbridge
 import netd/addr
 import netd/addrstatic
 import netd/routing
+import netd/dbuscore
 
 proc main*() =
   let params = os.commandLineParams()
@@ -23,6 +25,8 @@ proc main*() =
   manager.registerPlugin(LinkManager)
   manager.registerPlugin(RoutingManager)
 
+  manager.registerPlugin(DbusCorePlugin)
+
   manager.registerPlugin(LinkBridgePlugin)
   manager.registerPlugin(LinkVethPlugin)
   manager.registerPlugin(LinkHwPlugin)
@@ -30,9 +34,15 @@ proc main*() =
   manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)
 
+  let bus = getBus(dbus.DBUS_BUS_SYSTEM)
+  let mainLoop = MainLoop.create(bus)
+
+  manager.getPlugin(DbusCorePlugin).init(bus)
 
   try:
     manager.loadConfig(config)
-    manager.run
+    manager.reload()
   except ConfError:
     (ref ConfError)(getCurrentException()).printError()
+
+  mainLoop.runForever()

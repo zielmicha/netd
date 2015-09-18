@@ -55,5 +55,3 @@ proc reload*(self: NetworkManager) =
   for name, plugin in self.plugins:
     plugin.reload
 
-proc run*(self: NetworkManager) =
-  self.reload

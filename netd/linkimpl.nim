@@ -1,6 +1,6 @@
 import netd/iproute
 import conf/ast
-import tables, strutils, sequtils
+import tables, strutils, sequtils, os
 
 proc getRename*(identifier: string, suite: Suite): InterfaceName =
   let newName = suite.singleValue("name", required=false).stringValue
@@ -76,6 +76,7 @@ proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
         ipLinkDel(iface.interfaceName)
 
 proc setupNamespaces(self: LinkManager) =
+  createDir("/var/run/netns")
   let namespaces = toSeq(listNamespaces())
   echo "existing network namespaces: ", $namespaces
   if "root" notin namespaces:

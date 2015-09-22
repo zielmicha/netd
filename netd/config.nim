@@ -13,10 +13,15 @@ let staticAdressingCommands = SuiteDef(commands: @[
   cmd("gateway", singleValueArgDef())
 ]) & baseAdressingCommands
 
+# DHCP
+
+let dhcpCommands = SuiteDef(commands: @[]) & baseAdressingCommands
+
 # Address definition
 
 let addressDefCommands = SuiteDef(commands: @[
   cmd("static", @[suiteArgDef(suiteDef=staticAdressingCommands)]),
+  cmd("dhcp", @[suiteArgDef(suiteDef=dhcpCommands)])
 ])
 
 # Link suite

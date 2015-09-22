@@ -38,7 +38,7 @@ proc restoreNamespace(data: NsRestoreData) =
 
 var currentNs {.threadvar.}: string
 
-template inNamespace(namespaceName: NamespaceName, body: stmt): stmt {.immediate.} =
+template inNamespace*(namespaceName: NamespaceName, body: stmt): stmt {.immediate.} =
   if currentNs == nil:
     currentNs = "root"
 

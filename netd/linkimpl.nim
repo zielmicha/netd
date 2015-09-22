@@ -71,6 +71,7 @@ proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
 
   for iface in allInterfaces:
     if iface.isSynthetic and managedNames[iface.abstractName] == 0:
+      echo iface.abstractName, " is no longer managed"
       # check if still exists, deleting one side of veth might have deleted other
       if linkExists(iface.interfaceName):
         ipLinkDel(iface.interfaceName)

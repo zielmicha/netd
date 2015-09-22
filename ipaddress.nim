@@ -23,6 +23,10 @@ type
 
 proc `[]`*(a: Ip4Address, index: int): uint8 = array[4, uint8](a)[index]
 proc `[]`*(a: Ip6Address, index: int): uint8 = array[16, uint8](a)[index]
+proc `[]`*(a: IpAddress, index: int): uint8 =
+  case a.kind:
+  of ip4: return a.ip4[index]
+  of ip6: return a.ip6[index]
 
 proc `$`*(a: Ip4Address): string =
   "$1.$2.$3.$4" % [$a[0], $a[1], $a[2], $a[3]]
@@ -41,12 +45,19 @@ proc `$`*(a: IpAddress): string =
 proc `$`*[T](a: Interface[T]): string =
   "$1/$2" % [$a.address, $a.mask]
 
-proc addressBitLength(kind: IpKind): int =
+proc addressBitLength*(kind: IpKind): int =
   case kind:
   of ip4: return 32
   of ip6: return 128
 
-proc parseAddress4(a: string): Ip4Address =
+proc addressBitLength*(a: IpAddress): int =
+  a.kind.addressBitLength
+
+proc addressBitLength*(a: Ip4Address): int = addressBitLength(ip4)
+
+proc addressBitLength*(a: Ip6Address): int = addressBitLength(ip6)
+
+proc parseAddress4*(a: string): Ip4Address =
   let parts = a.split(".").map(proc(a: string): uint8 = parseInt(a).uint8)
   if parts.len != 4:
     raise newException(ValueError, "invalid IP4 address")
@@ -55,6 +66,21 @@ proc parseAddress4(a: string): Ip4Address =
 proc parseAddress*(a: string): IpAddress =
   result.kind = ip4
   result.ip4 = parseAddress4(a)
+
+proc getBit*(a: Ip4Address | Ip6Address | IpAddress, i: int): bool =
+  return ((a[i div 8] shr uint8(i mod 8)) and 1) == 1
+
+proc asMask*(s: Ip4Address | Ip6Address | IpAddress): int =
+  let S = s.addressBitLength
+  var mask = 0
+  for i in 0..<S:
+    if not s.getBit(i):
+      break
+    mask += 1
+  for i in mask..<S:
+    if s.getBit(i):
+      raise newException(ValueError, "%1 is not valid mask address" % [$s])
+  return mask
 
 proc parseInterface*(a: string): IpInterface =
   let splt = a.split("/")

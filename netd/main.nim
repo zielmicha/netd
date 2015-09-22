@@ -10,6 +10,7 @@ import netd/linkveth
 import netd/linkbridge
 import netd/addr
 import netd/addrstatic
+import netd/addrdhcp
 import netd/routing
 import netd/dbuscore
 
@@ -33,6 +34,7 @@ proc main*() =
 
   manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)
+  manager.registerPlugin(AddrDhcpPlugin)
 
   let bus = getBus(dbus.DBUS_BUS_SYSTEM)
   let mainLoop = MainLoop.create(bus)

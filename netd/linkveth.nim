@@ -39,8 +39,13 @@ proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
 
     result.add((sides: sides, config: confs))
 
-#method gatherInterfaces*(self: LinkBridgePlugin): seq[ManagedInterface] =
-  #self.getPlugin(LinkManager).gatherInterfacesRecursive(self.gatherInterfacesWithConfigs)
+method gatherInterfaces*(self: LinkVethPlugin): seq[ManagedInterface] =
+  result = @[]
+  for v in self.gatherInterfacesWithConfigs():
+    let (sides, config) = v
+    for i in 0..1:
+      result.add sides[i]
+      result &= self.getPlugin(LinkManager).gatherSubinterfacesAll(config[i], sides[i].abstractName)
 
 method setupInterfaces*(self: LinkVethPlugin) =
   let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
@@ -60,6 +65,7 @@ method setupInterfaces*(self: LinkVethPlugin) =
       # somehow only one side is detected, delete itx
       if livingSides[0].isSome or livingSides[1].isSome:
         let aliveSide = if livingSides[0].isSome: livingSides[0].get else: livingSides[1].get
+        echo "only one side of veth detected: " & aliveSide.name
         ipLinkDel(aliveSide)
 
       let rightTmpName = "veth" & hexUrandom(4)

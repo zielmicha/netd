@@ -1,4 +1,4 @@
-import tables, typetraits, strutils
+import tables, typetraits, strutils, os
 import netd/config
 import conf/ast, conf/parse, conf/exceptions
 
@@ -12,6 +12,9 @@ type
     manager*: NetworkManager
 
 method reload*(plugin: Plugin) =
+  discard
+
+method exit*(plugin: Plugin) =
   discard
 
 method info*(plugin: Plugin) =
@@ -55,3 +58,9 @@ proc reload*(self: NetworkManager) =
   for name, plugin in self.plugins:
     plugin.reload
 
+proc exit*(self: NetworkManager) =
+  for name, plugin in self.plugins:
+    plugin.exit
+
+proc getScriptPath*(name: string): string =
+  getAppDir() & "/../scripts/" & name

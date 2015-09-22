@@ -25,8 +25,6 @@ method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface
     ipLinkUp(iface.interfaceName)
 
     if gateway != nil:
-      # TODO: respect default_route
-      # TODO: respect namespaces
       self.manager.getPlugin(RoutingManager).addDefaultGateway(via=gateway,
                                                                forIp=ipInterface.address,
                                                                namespace=iface.namespaceName)

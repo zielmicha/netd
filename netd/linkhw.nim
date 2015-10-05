@@ -6,6 +6,8 @@ import nre, options
 type
   LinkHwPlugin* = ref object of Plugin
 
+include netd/linkhwconfig
+
 proc create*(t: typedesc[LinkHwPlugin], manager: NetworkManager): LinkHwPlugin =
   new(result)
   result.manager = manager

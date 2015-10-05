@@ -143,10 +143,10 @@ proc parseCommand(state: var ParserState, suiteDef: SuiteDef): Command =
     raise state.newConfError(ParseError, "expected command name, found $1" % [$nameValue.typ])
 
   let name = nameValue.stringValue
-  let commands = suiteDef.commands.toTable
+  let commands = suiteDef.allCommands.toTable
 
   if not commands.hasKey(name):
-    let allowedCommands = suiteDef.commands.mapIt(string, it.name)
+    let allowedCommands = suiteDef.allCommands.mapIt(string, it.name)
     raise state.newConfError(ParseError, "invalid command $1, expected one of $2" % [name, $allowedCommands])
 
   if nameValue.junkAfter.len != 0:

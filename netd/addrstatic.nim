@@ -4,6 +4,8 @@ import commonnim
 
 type AddrStaticPlugin* = ref object of Plugin
 
+include netd/addrstaticconfig
+
 proc create*(t: typedesc[AddrStaticPlugin], manager: NetworkManager): AddrStaticPlugin =
   new(result)
   result.manager = manager

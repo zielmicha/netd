@@ -5,6 +5,8 @@ import commonnim, options, tables, strutils
 type
   LinkBridgePlugin* = ref object of Plugin
 
+include netd/linkbridgeconfig
+
 proc create*(t: typedesc[LinkBridgePlugin], manager: NetworkManager): LinkBridgePlugin =
   new(result)
   result.manager = manager

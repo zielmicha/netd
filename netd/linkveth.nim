@@ -2,6 +2,8 @@ import netd/core, netd/link, netd/iproute
 import conf/ast
 import options, commonnim
 
+include netd/linkvethconfig
+
 type
   LinkVethPlugin* = ref object of Plugin
 

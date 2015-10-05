@@ -117,4 +117,5 @@ proc gatherInterfacesRecursive*(self: LinkManager, ifaces: ManagedInterfaceWithC
     result.add iface
     result &= self.gatherSubinterfacesAll(config, iface.abstractName)
 
+include netd/linkconfig
 include netd/linkimpl

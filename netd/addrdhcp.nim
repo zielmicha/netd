@@ -3,6 +3,8 @@ import netd/dbuscore, dbus, dbus/def
 import conf/ast
 import commonnim, options, strutils, tables
 
+include netd/addrdhcpconfig
+
 type
   DhcpConfig = object
     case configured: bool

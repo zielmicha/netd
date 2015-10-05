@@ -1,4 +1,4 @@
-import tables
+import tables, commonnim
 
 type
   ParserThunk[T] = object
@@ -47,6 +47,7 @@ type
 
   SuiteDef* = ref object
     commands*: seq[CmdDef]
+    includeSuites*: seq[SuiteDef]
 
 proc funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
   result.isValue = false
@@ -55,6 +56,11 @@ proc funcThunk*[T](function: (proc(): T)): ParserThunk[T] =
 converter valueThunk*[T](val: T): ParserThunk[T] =
   result.isValue = true
   result.value = val
+
+proc allCommands*(suite: SuiteDef): seq[CmdDef] =
+  result = suite.commands
+  for includeSuite in suite.includeSuites:
+    result &= includeSuite.allCommands
 
 proc valueArgDef*(name: string, valueType=vtString, required: bool=true, help: string=nil): ArgDef =
   new(result)

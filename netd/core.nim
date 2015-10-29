@@ -11,13 +11,13 @@ type
     name*: string
     manager*: NetworkManager
 
-method reload*(plugin: Plugin) =
+method reload*(plugin: Plugin) {.base.} =
   discard
 
-method exit*(plugin: Plugin) =
+method exit*(plugin: Plugin) {.base.} =
   discard
 
-method info*(plugin: Plugin) =
+method info*(plugin: Plugin) {.base.} =
   echo "Plugin %1" % plugin.name
 
 proc addPlugin*(manager: NetworkManager, name: string, plugin: Plugin) =

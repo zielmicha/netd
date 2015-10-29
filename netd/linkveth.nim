@@ -1,6 +1,6 @@
 import netd/core, netd/link, netd/iproute
 import conf/ast
-import options, commonnim
+import options, commonnim, sequtils, future
 
 include netd/linkvethconfig
 
@@ -55,8 +55,7 @@ method setupInterfaces*(self: LinkVethPlugin) =
   for v in self.gatherInterfacesWithConfigs():
     let (sides, config) = v
 
-    let livingSides = [0, 1].map(proc(i: int): auto =
-      findLivingInterface(interfaces, sides[i].abstractName))
+    let livingSides = [0, 1].map(proc(i: int): auto = findLivingInterface(interfaces, sides[i].abstractName))
 
     let leftInterfaceName = sides[0].interfaceName
     let rightInterfaceName = sides[1].interfaceName

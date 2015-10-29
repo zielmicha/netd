@@ -37,7 +37,7 @@ proc create*(t: typedesc[LinkManager], manager: NetworkManager): LinkManager =
 
 # Callbacks
 
-method gatherInterfaces*(plugin: Plugin): seq[ManagedInterface] =
+method gatherInterfaces*(plugin: Plugin): seq[ManagedInterface] {.base.} =
   ## Plugin should read configuration and return `ManagedInterface`s
   ## for all network interfaces that would be created from that
   ## configuration.
@@ -46,24 +46,24 @@ method gatherInterfaces*(plugin: Plugin): seq[ManagedInterface] =
   ## will be deleted.
   @[]
 
-method setupInterfaces*(plugin: Plugin) =
+method setupInterfaces*(plugin: Plugin) {.base.} =
   ## Here plugin should configure and (if neccessary) create
   ## devices it promised to create in gatherInterfaces.
 
-method beforeSetupInterfaces*(plugin: Plugin) =
+method beforeSetupInterfaces*(plugin: Plugin) {.base.} =
   ## Called before all setupInterfaces
 
-method afterSetupInterfaces*(plugin: Plugin) =
+method afterSetupInterfaces*(plugin: Plugin) {.base.} =
   ## Called after all setupInterfaces
 
-method gatherSubinterfaces*(plugin: Plugin, config: Suite, abstractParentName: string): seq[ManagedInterface] =
+method gatherSubinterfaces*(plugin: Plugin, config: Suite, abstractParentName: string): seq[ManagedInterface] {.base.} =
   ## gatherInterfaces version for subinterfaces
   @[]
 
-method configureInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
+method configureInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) {.base.} =
   ## Configure misc and subinterfaces for given `ManagedInterface`
 
-method cleanupInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) =
+method cleanupInterface*(plugin: Plugin, iface: ManagedInterface, config: Suite) {.base.} =
   ## Perform potential cleanup actions on given interface.
 
 # Gathered for all plugins:
@@ -116,6 +116,21 @@ proc gatherInterfacesRecursive*(self: LinkManager, ifaces: ManagedInterfaceWithC
     let (iface, config) = v
     result.add iface
     result &= self.gatherSubinterfacesAll(config, iface.abstractName)
+
+proc makeDefaultLinkConfig*(topCommand: Command): ManagedInterfaceWithConfig =
+  let (matcherVal, bodyVal) = unpackSeq2(topCommand.args)
+  let ident = matcherVal.stringValue
+  let body = bodyVal.suite
+
+  let newName = getRename(ident, body)
+  let managedInterface = ManagedInterface(
+    kernelName: newName.name,
+    namespaceName: newName.namespace,
+    isSynthetic: true,
+    abstractName: ident
+  )
+
+  return (iface: managedInterface, config: body)
 
 include netd/linkconfig
 include netd/linkimpl

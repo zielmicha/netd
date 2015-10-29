@@ -1,4 +1,4 @@
-import strutils, unsigned
+import strutils, unsigned, sequtils, future
 
 type
   Interface*[T] = tuple[address: T, mask: int]
@@ -58,7 +58,7 @@ proc addressBitLength*(a: Ip4Address): int = addressBitLength(ip4)
 proc addressBitLength*(a: Ip6Address): int = addressBitLength(ip6)
 
 proc parseAddress4*(a: string): Ip4Address =
-  let parts = a.split(".").map(proc(a: string): uint8 = parseInt(a).uint8)
+  let parts = a.split(".").map(a => parseInt(a).uint8)
   if parts.len != 4:
     raise newException(ValueError, "invalid IP4 address")
   [parts[0], parts[1], parts[2], parts[3]].Ip4Address

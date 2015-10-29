@@ -164,6 +164,9 @@ proc ipRouteAddDefault*(namespace: NamespaceName, via: string) =
 proc ipNetnsCreate*(name: string) =
   callIp(RootNamespace, ["ip", "netns", "add", sanitizeArg(name)])
 
+proc ipTunTapAdd(ifaceName: InterfaceName, mode="tun") =
+  callIp(ifaceName.namespace, ["ip", "tuntap", "add", "dev", sanitizeArg(ifaceName.name), "mode", sanitizeArg(mode)])
+
 proc createRootNamespace*() =
   let nsFile = "/var/run/netns/root"
   writeFile(nsFile, "")

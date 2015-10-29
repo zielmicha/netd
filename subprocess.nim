@@ -1,5 +1,5 @@
 # Easily run commands.
-import osproc, strutils
+import osproc, strutils, sequtils, future
 
 type CalledProcessError* = object of IOError
   errorCode: int
@@ -7,7 +7,7 @@ type CalledProcessError* = object of IOError
 proc call*(args: openarray[string], echo=false): int =
   let args = @args
   if echo:
-    echo args.map(proc(s:string):string=quoteShellPosix(s)).join(" ")
+    echo args.map(s => quoteShellPosix(s)).join(" ")
   let process = startProcess(command=args[0], args=args[1..^1], options={poParentStreams, poUsePath})
   process.waitForExit
 

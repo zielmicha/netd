@@ -1,6 +1,6 @@
 import netd/core, netd/link, netd/iproute
 import conf/ast
-import commonnim, options, tables, strutils
+import commonnim, options, tables, strutils, sequtils, future
 
 type
   LinkBridgePlugin* = ref object of Plugin
@@ -16,26 +16,14 @@ proc gatherInterfacesWithConfigs(self: LinkBridgePlugin): ManagedInterfaceWithCo
 
   let configRoot = self.manager.config
   for topCommand in configRoot.commandsWithName("bridge"):
-    let (matcherVal, bodyVal) = unpackSeq2(topCommand.args)
-    let ident = matcherVal.stringValue
-    let body = bodyVal.suite
-
-    let newName = getRename(ident, body)
-    let managedInterface = ManagedInterface(
-      kernelName: newName.name,
-      namespaceName: newName.namespace,
-      isSynthetic: true,
-      abstractName: ident
-    )
-
-    result.add((iface: managedInterface, config: body))
+    result.add(makeDefaultLinkConfig(topCommand))
 
 method gatherInterfaces*(self: LinkBridgePlugin): seq[ManagedInterface] =
   self.getPlugin(LinkManager).gatherInterfacesRecursive(self.gatherInterfacesWithConfigs)
 
 proc getPorts(config: Suite): seq[string] =
   let portsCmd = config.singleCommand("ports", required=false)
-  return portsCmd.args.map(proc(a: auto): string = a.stringValue)
+  return portsCmd.args.map(a => a.stringValue)
 
 method beforeSetupInterfaces*(self: LinkBridgePlugin) =
   for v in self.gatherInterfacesWithConfigs():

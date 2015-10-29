@@ -1,5 +1,6 @@
 import dbus, dbus/def
 import netd/core
+import conf/exceptions
 
 type
   DbusCorePlugin* = ref object of Plugin
@@ -16,9 +17,17 @@ proc Reload*(self: DbusCorePlugin) =
 proc Exit*(self: DbusCorePlugin) =
   self.manager.exit()
 
+proc LoadConfig*(self: DbusCorePlugin, config: string) =
+  try:
+    self.manager.loadConfig(config)
+  except ConfError:
+    (ref ConfError)(getCurrentException()).printError()
+    raise
+
 let coreDef = newInterfaceDef(DbusCorePlugin)
 coreDef.addMethod(Reload, [], [])
 coreDef.addMethod(Exit, [], [])
+coreDef.addMethod(LoadConfig, [("config", string)], [])
 
 method dbusInit*(plugin: Plugin) =
   nil

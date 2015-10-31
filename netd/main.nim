@@ -13,6 +13,7 @@ import netd/addrstatic
 import netd/addrdhcp
 import netd/routing
 import netd/dbuscore
+import netd/openvpnptp
 
 proc main*() =
   let params = os.commandLineParams()
@@ -31,6 +32,7 @@ proc main*() =
   manager.registerPlugin(LinkBridgePlugin)
   manager.registerPlugin(LinkVethPlugin)
   manager.registerPlugin(LinkHwPlugin)
+  manager.registerPlugin(OpenvpnPtpPlugin)
 
   manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)

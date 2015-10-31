@@ -20,10 +20,11 @@ method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface
     let body = staticCommand.args.unpackSeq1().suite
     let addressStr = body.singleValue("address", required=true).stringValue
     let gateway = body.singleValue("gateway", required=false).stringValue
+    let peerAddress = body.singleValue("peer_address", required=false).stringValue
 
     let ipInterface = addressStr.parseInterface
 
-    ipAddrAdd(iface.interfaceName, $ipInterface)
+    ipAddrAdd(iface.interfaceName, $ipInterface, peerAddress = peerAddress)
     ipLinkUp(iface.interfaceName)
 
     if gateway != nil:

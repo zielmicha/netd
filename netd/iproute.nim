@@ -8,7 +8,7 @@ type
   ## Location of a kernel interface.
   InterfaceName* = tuple[namespace: NamespaceName, name: string]
 
-type NsRestoreData = tuple[mntFd: cint, netFd: cint]
+type NsRestoreData = tuple[mntFd: cint, netFd: cint, path: string]
 
 const RootNamespace*: NamespaceName = "root"
 
@@ -21,6 +21,7 @@ proc nsNilToRoot*(name: string): NamespaceName =
 proc saveNamespace(): NsRestoreData =
   result.mntFd = saveNs(nsMnt)
   result.netFd = saveNs(nsNet)
+  result.path = getCurrentDir()
 
 proc nsDbg() =
   echo "nsDebug"
@@ -35,6 +36,7 @@ proc enterNamespace(namespaceName: NamespaceName) =
 proc restoreNamespace(data: NsRestoreData) =
   restoreNs(nsNet, data.netFd)
   restoreNs(nsMnt, data.mntFd)
+  setCurrentDir(data.path)
 
 var currentNs {.threadvar.}: string
 
@@ -154,8 +156,11 @@ proc ipLinkAddVeth*(namespaceName: NamespaceName, leftName: string, rightName: s
 proc ipAddrFlush*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "addr", "flush", "dev", sanitizeArg(ifaceName.name)])
 
-proc ipAddrAdd*(ifaceName: InterfaceName, address: string) =
-  callIp(ifaceName.namespace, ["ip", "addr", "add", "dev", sanitizeArg(ifaceName.name), sanitizeArg(address)])
+proc ipAddrAdd*(ifaceName: InterfaceName, address: string, peerAddress: string = nil) =
+  var cmd = @["ip", "addr", "add", "dev", sanitizeArg(ifaceName.name), sanitizeArg(address)]
+  if peerAddress != nil:
+    cmd &= @["peer", sanitizeArg(peerAddress)]
+  callIp(ifaceName.namespace, cmd)
 
 proc ipRouteAddDefault*(namespace: NamespaceName, via: string) =
   # FIXME: what about namespace?
@@ -164,7 +169,7 @@ proc ipRouteAddDefault*(namespace: NamespaceName, via: string) =
 proc ipNetnsCreate*(name: string) =
   callIp(RootNamespace, ["ip", "netns", "add", sanitizeArg(name)])
 
-proc ipTunTapAdd(ifaceName: InterfaceName, mode="tun") =
+proc ipTunTapAdd*(ifaceName: InterfaceName, mode="tun") =
   callIp(ifaceName.namespace, ["ip", "tuntap", "add", "dev", sanitizeArg(ifaceName.name), "mode", sanitizeArg(mode)])
 
 proc createRootNamespace*() =

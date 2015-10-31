@@ -1,5 +1,7 @@
 ## implementation
 
+* make sure that lo interface is up and has address
+* raise ConfError if ipaddress is invalid
 * remove IP addresses when there are no addressing sections
 * handle abstract names in bridge ports
 * handle bridge\_with and bridge\_master

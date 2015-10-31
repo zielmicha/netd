@@ -40,8 +40,8 @@ proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
   result.namespaceName = ifaceName.namespace
 
   let props = readAliasProperties(ifaceName)
-  result.abstractName = props["abstractName"]
-  result.isSynthetic = props["isSynthetic"] == "true"
+  result.abstractName = props.getOrDefault("abstractName")
+  result.isSynthetic = props.getOrDefault("isSynthetic") == "true"
 
 proc listLivingInterfaces*(self: LinkManager): seq[LivingInterface] =
   if self.livingInterfacesCache == nil:

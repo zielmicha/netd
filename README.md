@@ -6,9 +6,7 @@ It supports advanced configuration involving multiple interfaces, VPNs, network 
 
 ## installing netd
 
-- Download and install Nim language [0.11.3-pre-bb2aa24c](https://users.atomshare.net/~zlmch/nim-0.11.3-pre-bb2aa24c.tar.xz).
-- Compile netd: `nim c netd`
-
+- build netd: `./build.sh`
 
 ## running netd
 

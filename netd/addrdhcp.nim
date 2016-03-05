@@ -1,4 +1,5 @@
-import netd/core, netd/link, netd/iproute, netd/routing, ipaddress, netd/processmanager
+import reactor/ipaddress
+import netd/core, netd/link, netd/iproute, netd/routing, netd/processmanager
 import netd/dbuscore, dbus, dbus/def
 import conf/ast
 import commonnim, options, strutils, tables

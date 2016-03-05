@@ -1,4 +1,5 @@
-import netd/core, netd/link, netd/iproute, netd/routing, ipaddress
+import reactor/ipaddress
+import netd/core, netd/link, netd/iproute, netd/routing
 import conf/ast
 import commonnim
 

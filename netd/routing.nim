@@ -1,4 +1,5 @@
-import netd/core, netd/iproute, ipaddress
+import reactor/ipaddress
+import netd/core, netd/iproute
 
 type
   RoutingManager* = ref object of Plugin

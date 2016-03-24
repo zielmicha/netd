@@ -70,7 +70,7 @@ proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
     managedNames.inc iface.abstractName
 
   for iface in allInterfaces:
-    if iface.isSynthetic and managedNames[iface.abstractName] == 0:
+    if iface.isSynthetic and managedNames.getOrDefault(iface.abstractName) == 0:
       echo iface.abstractName, " is no longer managed"
       # check if still exists, deleting one side of veth might have deleted other
       if linkExists(iface.interfaceName):
@@ -87,6 +87,13 @@ proc setupNamespaces(self: LinkManager) =
     let nsname = cmd.args.unpackSeq1.stringValue.nsNilToRoot
     if nsname notin namespaces:
       ipNetnsCreate(nsname)
+    if nsname != "root":
+      # FIXME: race condition
+      let loopback = (nsname, "lo")
+      ipAddrFlush(loopback)
+      ipAddrAdd(loopback, "127.0.0.1/8")
+      ipAddrAdd(loopback, "::1/128")
+      ipLinkUp(loopback)
 
 proc gatherInterfacesAll(self: LinkManager): seq[ManagedInterface] =
   result = @[]

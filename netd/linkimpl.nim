@@ -78,7 +78,7 @@ proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
 
 proc setupNamespaces(self: LinkManager) =
   createDir("/var/run/netns")
-  let namespaces = toSeq(listNamespaces())
+  let namespaces = listNamespaces()
   echo "existing network namespaces: ", $namespaces
   if "root" notin namespaces:
     createRootNamespace()

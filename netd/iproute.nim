@@ -75,11 +75,23 @@ proc listSysfsInterfacesInNs*(namespaceName: NamespaceName): seq[InterfaceName] 
       let name = path.splitPath().tail
       result.add((namespaceName, name))
 
-iterator listNamespaces*(): NamespaceName =
+proc listNamespaces*(): seq[NamespaceName] =
+  var rootStat: Stat
+  if lstat("/var/run/netns", rootStat) != 0:
+    return
+
+  result = @[]
+
   for kind, path in walkDir("/var/run/netns"):
+    var myStat: Stat
+    if lstat(path, myStat) != 0:
+      continue
+    if myStat.st_dev == rootStat.st_dev:
+      # not mounted, not a valid namespace
+      continue
     let name = path.splitPath().tail
     if name != nil:
-      yield name
+      result.add name
     else:
       assert false
 

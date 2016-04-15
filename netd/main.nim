@@ -13,6 +13,7 @@ import netd/addrstatic
 import netd/addrdhcp
 import netd/routing
 import netd/dbuscore
+import netd/fragments
 import netd/openvpnptp
 
 proc main*() =
@@ -28,6 +29,7 @@ proc main*() =
   manager.registerPlugin(RoutingManager)
 
   manager.registerPlugin(DbusCorePlugin)
+  manager.registerPlugin(FragmentsPlugin)
 
   manager.registerPlugin(LinkBridgePlugin)
   manager.registerPlugin(LinkVethPlugin)

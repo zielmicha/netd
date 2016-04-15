@@ -14,6 +14,15 @@ proc create*(t: typedesc[LinkVethPlugin], manager: NetworkManager): LinkVethPlug
 type
   Veth = tuple[sides: seq[ManagedInterface], config: seq[Suite]]
 
+method validateConfig*(self: LinkVethPlugin) =
+  let configRoot = self.manager.config
+  for topCommand in configRoot.commandsWithName("veth"):
+    let (matcherVal, bodyVal) = unpackSeq2(topCommand.args)
+    let topIdent = matcherVal.stringValue
+    let topBody = bodyVal.suite
+    for side in ["left", "right"]:
+      discard topBody.singleCommand(side).args.unpackSeq1.suite
+
 proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
   result = @[]
 

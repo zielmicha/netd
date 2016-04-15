@@ -5,6 +5,8 @@ import conf/ast, conf/parse, conf/exceptions
 type
   NetworkManager* = ref object
     plugins: OrderedTable[string, Plugin]
+    mainConfig: Suite
+    pluginGeneratedConfigs: Table[string, Suite]
     config*: Suite
 
   Plugin* = ref object {.inheritable.}
@@ -12,6 +14,9 @@ type
     manager*: NetworkManager
 
 method reload*(plugin: Plugin) {.base.} =
+  discard
+
+method validateConfig*(plugin: Plugin) {.base.} =
   discard
 
 method exit*(plugin: Plugin) {.base.} =
@@ -48,13 +53,32 @@ template callAllPlugins*(self, funcname) =
 proc create*(t: typedesc[NetworkManager]): NetworkManager =
   new(result)
   result.plugins = initOrderedTable[string, Plugin]()
+  result.pluginGeneratedConfigs = initTable[string, Suite]()
 
 proc loadConfig*(self: NetworkManager, filename: string) =
   let f = open(filename)
   defer: f.close
-  self.config = parse(f.readAll(), filename, mainCommands)
+  self.mainConfig = parse(f.readAll(), filename, mainCommands)
+
+proc setPluginGeneratedConfig*(self: NetworkManager, typ: typedesc, config: Suite) =
+  self.pluginGeneratedConfigs[name(typ)] = config
+
+proc mergeConfigs(self: NetworkManager) =
+  self.config = Suite(commands: @[])
+  self.config.commands &= self.mainConfig.commands
+  for config in self.pluginGeneratedConfigs.values:
+    self.config.commands &= config.commands
+
+proc validateConfig*(self: NetworkManager) =
+  self.mergeConfigs()
+
+  for name, plugin in self.plugins:
+    plugin.validateConfig
 
 proc reload*(self: NetworkManager) =
+  self.mergeConfigs()
+  self.validateConfig()
+
   for name, plugin in self.plugins:
     plugin.reload
 

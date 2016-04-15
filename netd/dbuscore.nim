@@ -29,7 +29,7 @@ coreDef.addMethod(Reload, [], [])
 coreDef.addMethod(Exit, [], [])
 coreDef.addMethod(LoadConfig, [("config", string)], [])
 
-method dbusInit*(plugin: Plugin) =
+method dbusInit*(plugin: Plugin) {.base.} =
   nil
 
 method dbusInit(self: DbusCorePlugin) =

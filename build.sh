@@ -55,10 +55,10 @@ get_dep() {
 
 echo "path: \".\"" > nim.cfg
 
-get_dep dbus https://github.com/zielmicha/nim-dbus 8226618625141e55ea65fb9f89807de662b3d182 ''
+get_dep dbus https://github.com/zielmicha/nim-dbus 5981c28ee19f292863c8a5487359a37d713c7015 ''
 get_dep libcommon https://github.com/networkosnet/libcommon e51cc7898529b80741898b7029b76b3559b8fdf2 ''
 get_dep niceconf https://github.com/networkosnet/niceconf ccf617c397e6c8933d9fca910524136c45e3af8a ''
-get_dep reactor https://github.com/zielmicha/reactor.nim 21c0bd813601a93c244e89b478a615039207e07f ''
+get_dep reactor https://github.com/zielmicha/reactor.nim eba46d45e4f4fafaa6a4b7d1889ca82596fa5b63 ''
 
 echo '# reactor.nim requires pthreads
 threads: "on"
@@ -86,4 +86,4 @@ debugger: "native"
 mkdir -p bin
 ln -sf ../.nimenv/nim/bin/nim bin/nim
 
-echo "building netd"; nim c --out:"$PWD/bin/netd" netd.nim
+echo "building netd"; bin/nim c -d:release --out:"$PWD/bin/netd" netd.nim

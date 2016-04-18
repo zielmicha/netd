@@ -36,6 +36,8 @@ proc enterNamespace(namespaceName: NamespaceName) =
 proc restoreNamespace(data: NsRestoreData) =
   restoreNs(nsNet, data.netFd)
   restoreNs(nsMnt, data.mntFd)
+  discard close(data.netFd)
+  discard close(data.mntFd)
   setCurrentDir(data.path)
 
 var currentNs {.threadvar.}: string

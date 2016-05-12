@@ -1,0 +1,10 @@
+[Unit]
+Description=netd network manager
+
+[Service]
+# TODO: Type=notify
+Type=simple
+ExecStart=/usr/local/bin/netd /etc/netd.conf
+
+[Install]
+WantedBy=network.target

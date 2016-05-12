@@ -7,6 +7,7 @@
 * handle bridge\_with and bridge\_master
 * add type= field to alias properties + handle changing link types
 * flush addresses on non-synthetic interfaces that were managed but now aren't
+* before rename iface it need to be down
 
 ## features
 

@@ -55,10 +55,11 @@ get_dep() {
 
 echo "path: \".\"" > nim.cfg
 
+get_dep collections https://github.com/zielmicha/collections.nim 76fc5e7500adf814d500a0c8261aafba5928a692 ''
 get_dep dbus https://github.com/zielmicha/nim-dbus 5981c28ee19f292863c8a5487359a37d713c7015 ''
-get_dep libcommon https://github.com/networkosnet/libcommon 4e7dbf1685fc131eb789936c1167586a713ee822 ''
+get_dep libcommon https://github.com/networkosnet/libcommon 9346c14dc38739c61498803fbfd692a068482940 ''
 get_dep niceconf https://github.com/networkosnet/niceconf ccf617c397e6c8933d9fca910524136c45e3af8a ''
-get_dep reactor https://github.com/zielmicha/reactor.nim b6ea4c19f2a86ffdb65cab991e1a07796c8fc5e8 ''
+get_dep reactor https://github.com/zielmicha/reactor.nim 2265f5199a9c5928a82eb5157f2becf5b3c7cc9c ''
 
 echo '# reactor.nim requires pthreads
 threads: "on"

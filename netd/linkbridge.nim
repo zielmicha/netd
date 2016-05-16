@@ -31,7 +31,7 @@ method beforeSetupInterfaces*(self: LinkBridgePlugin) =
 
     let ports = config.getPorts
 
-    for potentialPort in listSysfsInterfacesInNs(iface.namespaceName):
+    for potentialPort in listKernelInterfacesInNs(iface.namespaceName):
       let isCurrentlyPort = potentialPort.getMasterName() == iface.kernelName
       let shouldBePort = potentialPort.name in ports # TODO: handle abstract names
       if isCurrentlyPort and not shouldBePort:

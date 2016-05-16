@@ -19,8 +19,8 @@ proc applyRename(interfaceName: InterfaceName, suite: Suite): InterfaceName =
 
 proc readAliasProperties(ifaceName: InterfaceName): Table[string, string] =
   result = initTable[string, string]()
-  let data = readSysfsProperty(ifaceName, "ifalias").strip
-  if data.startsWith("NETD,"):
+  let data = ifaceName.getLinkAlias
+  if data != nil and data.startsWith("NETD,"):
     let parts = data.split(",")
     for i, part in parts:
       if i == 0:
@@ -33,7 +33,7 @@ proc writeAliasProperties(ifaceName: InterfaceName, prop: Table[string, string])
   var s = "NETD"
   for k, v in prop:
     s.add("," & k & "=" & v)
-  writeSysfsProperty(ifaceName, "ifalias", s)
+  ipLinkSet(ifaceName, {"alias": s})
 
 proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
   result.kernelName = ifaceName.name
@@ -46,7 +46,7 @@ proc infoAboutLivingInterface(ifaceName: InterfaceName): LivingInterface =
 proc listLivingInterfaces*(self: LinkManager): seq[LivingInterface] =
   if self.livingInterfacesCache == nil:
     self.livingInterfacesCache = @[]
-    for name in listSysfsInterfaces():
+    for name in listKernelInterfaces():
       self.livingInterfacesCache.add infoAboutLivingInterface(name)
 
   return self.livingInterfacesCache

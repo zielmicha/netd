@@ -2,6 +2,7 @@
 # netlink overview: http://1984.lsi.us.es/~pablo/docs/spae.pdf
 import os, osproc, tables, strutils, posix, morelinux
 import subprocess, commonnim
+import netd/netlink
 
 type
   NamespaceName* = string not nil
@@ -23,15 +24,9 @@ proc saveNamespace(): NsRestoreData =
   result.netFd = saveNs(nsNet)
   result.path = getCurrentDir()
 
-proc nsDbg() =
-  echo "nsDebug"
-  for kind, path in walkDir("/sys/class/net"):
-    echo path
-
 proc enterNamespace(namespaceName: NamespaceName) =
   setNetNs(namespaceName)
   unshare(nsMnt)
-  remountSys()
 
 proc restoreNamespace(data: NsRestoreData) =
   restoreNs(nsNet, data.netFd)
@@ -62,20 +57,15 @@ template inNamespace*(namespaceName: NamespaceName, body: stmt): stmt {.immediat
       currentNs = prevNs
       restoreNamespace(restoreData)
 
-proc readSysfsProperty*(ifaceName: InterfaceName, propertyName: string): string =
-  inNamespace ifaceName.namespace:
-    return readFileSysfs("/sys/class/net" / ifaceName.name / propertyName)
-
-proc writeSysfsProperty*(ifaceName: InterfaceName, propertyName: string, data: string) =
-  inNamespace ifaceName.namespace:
-    writeFile("/sys/class/net" / ifaceName.name / propertyName, data)
-
-proc listSysfsInterfacesInNs*(namespaceName: NamespaceName): seq[InterfaceName] =
+proc listKernelInterfacesInNs*(namespaceName: NamespaceName): seq[InterfaceName] =
   result = @[]
   inNamespace namespaceName:
-    for kind, path in walkDir("/sys/class/net"):
-      let name = path.splitPath().tail
-      result.add((namespaceName, name))
+    for iface in getLinks():
+      result.add((namespaceName, iface.name))
+
+proc getLinkAlias*(name: InterfaceName): string =
+  inNamespace name.namespace:
+    return getLink(name.name).alias
 
 proc listNamespaces*(): seq[NamespaceName] =
   var rootStat: Stat
@@ -97,10 +87,10 @@ proc listNamespaces*(): seq[NamespaceName] =
     else:
       assert false
 
-iterator listSysfsInterfaces*(): InterfaceName =
+iterator listKernelInterfaces*(): InterfaceName =
   # TODO: also walk other namespaces
   for namespace in listNamespaces():
-    for iface in listSysfsInterfacesInNs(namespace):
+    for iface in listKernelInterfacesInNs(namespace):
       yield iface
 
 proc sanitizeIfaceName(name: string): string =

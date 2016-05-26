@@ -20,8 +20,6 @@ method validateConfig*(self: LinkVethPlugin) =
     let (matcherVal, bodyVal) = unpackSeq2(topCommand.args)
     let topIdent = matcherVal.stringValue
     let topBody = bodyVal.suite
-    for side in ["left", "right"]:
-      discard topBody.singleCommand(side).args.unpackSeq1.suite
 
 proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
   result = @[]
@@ -35,7 +33,10 @@ proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
     var confs: seq[Suite] = @[]
 
     for side in ["left", "right"]:
-      let body = topBody.singleCommand(side).args.unpackSeq1.suite
+      let cmd = topBody.singleCommand(side, required=false)
+
+      let body = if cmd == nil: Suite(commands: @[])
+                 else: cmd.args.unpackSeq1.suite
       let ident = topIdent & "." & side
 
       let newName = getRename(ident, body)
@@ -72,11 +73,15 @@ method setupInterfaces*(self: LinkVethPlugin) =
     # TODO: what if only one side exists?
 
     if not (livingSides[0].isSome and livingSides[1].isSome):
-      # somehow only one side is detected, delete itx
       if livingSides[0].isSome or livingSides[1].isSome:
-        let aliveSide = if livingSides[0].isSome: livingSides[0].get else: livingSides[1].get
-        echo "only one side of veth detected: " & aliveSide.name
-        ipLinkDel(aliveSide)
+        # only one side is detected, another may be moved to NS not managed by us
+        let aliveSide = if livingSides[0].isSome: 0 else: 1
+        if config[1 - aliveSide].commands.len == 0:
+          # other side is not explicitly managed by us, ignore
+          discard
+        else:
+          echo "only one side of veth detected: " & livingSides[aliveSide].get.name
+          ipLinkDel(livingSides[aliveSide].get)
 
       let rightTmpName = "veth" & hexUrandom(4)
       ipLinkAddVeth(leftInterfaceName.namespace, leftInterfaceName.name, rightTmpName)

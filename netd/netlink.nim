@@ -47,7 +47,7 @@ proc getLinks*(): seq[NlLink] =
   for response in readResponse(sock, bulk=true):
     result.add parseLink(response)
 
-proc getLink*(name): NlLink =
+proc getLink*(name: string): NlLink =
   for link in getLinks():
     if link.name == name:
       return link

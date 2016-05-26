@@ -37,7 +37,7 @@ proc gatherInterfacesWithConfigs(self: LinkVethPlugin): seq[Veth] =
 
       let body = if cmd == nil: Suite(commands: @[])
                  else: cmd.args.unpackSeq1.suite
-      let ident = topIdent & "." & side
+      let ident = topIdent & "." & side[0]
 
       let newName = getRename(ident, body)
       let managedInterface = ManagedInterface(

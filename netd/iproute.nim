@@ -112,7 +112,10 @@ proc getMasterName*(interfaceName: InterfaceName): string =
 
 proc linkExists*(interfaceName: InterfaceName): bool =
   inNamespace interfaceName.namespace:
-    return dirExists("/sys/class/net/" & sanitizeIfaceName(interfaceName.name))
+    for link in getLinks():
+      if link.name == interfaceName.name:
+        return true
+    return false
 
 proc callIp*(namespaceName: NamespaceName, args: openarray[string]) =
   inNamespace namespaceName:

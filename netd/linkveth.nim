@@ -73,27 +73,31 @@ method setupInterfaces*(self: LinkVethPlugin) =
     # TODO: what if only one side exists?
 
     if not (livingSides[0].isSome and livingSides[1].isSome):
+      var doCreateVeth = true
       if livingSides[0].isSome or livingSides[1].isSome:
         # only one side is detected, another may be moved to NS not managed by us
         let aliveSide = if livingSides[0].isSome: 0 else: 1
         if config[1 - aliveSide].commands.len == 0:
           # other side is not explicitly managed by us, ignore
-          discard
+          doCreateVeth = false
         else:
           echo "only one side of veth detected: " & livingSides[aliveSide].get.name
           ipLinkDel(livingSides[aliveSide].get)
 
-      let rightTmpName = "veth" & hexUrandom(4)
-      ipLinkAddVeth(leftInterfaceName.namespace, leftInterfaceName.name, rightTmpName)
-      writeAliasProperties(leftInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[0].abstractName))
-      applyRename((namespace: leftInterfaceName.namespace, name: rightTmpName),
-                  rightInterfaceName)
+      if doCreateVeth:
+        let rightTmpName = "veth" & hexUrandom(4)
+        ipLinkAddVeth(leftInterfaceName.namespace, leftInterfaceName.name, rightTmpName)
+        writeAliasProperties(leftInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[0].abstractName))
+        applyRename((namespace: leftInterfaceName.namespace, name: rightTmpName),
+                    rightInterfaceName)
     else:
       applyRename(livingSides[0].get, leftInterfaceName)
       writeAliasProperties(leftInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[0].abstractName))
       applyRename(livingSides[1].get, rightInterfaceName)
 
-    writeAliasProperties(rightInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[1].abstractName))
+    if livingSides[1].isSome:
+      writeAliasProperties(rightInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[1].abstractName))
 
     for i in [0, 1]:
-      self.getPlugin(LinkManager).configureInterfaceAll(sides[i], config[i])
+      if livingSides[i].isSome:
+        self.getPlugin(LinkManager).configureInterfaceAll(sides[i], config[i])

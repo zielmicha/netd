@@ -10,10 +10,10 @@ fi
 mkdir -p .nimenv/nim
 mkdir -p .nimenv/deps
 
-NIMHASH=cd61f5e5768d4063596d6df578ae9bb5f9d52430773542987e91050b848cb1a9
+NIMHASH=5d149dad6791562b44631392ad64fd4740a2bd65b7bbfebfc921ba74564c3870
 if ! [ -e .nimenv/nimhash -a \( "$(cat .nimenv/nimhash)" = "$NIMHASH" \) ]; then
-  echo "Downloading Nim http://nim-lang.org/download/nim-0.13.0.tar.xz (sha256: $NIMHASH)"
-  wget http://nim-lang.org/download/nim-0.13.0.tar.xz -O .nimenv/nim.tar.xz
+  echo "Downloading Nim https://users.atomshare.net/~zlmch/nim-0.13.0+d2ddeb4.tar.xz (sha256: $NIMHASH)"
+  wget https://users.atomshare.net/~zlmch/nim-0.13.0+d2ddeb4.tar.xz -O .nimenv/nim.tar.xz
   if ! [ "$(sha256sum < .nimenv/nim.tar.xz)" = "$NIMHASH  -" ]; then
     echo "verification failed"
     exit 1

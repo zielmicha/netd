@@ -1,0 +1,7 @@
+<interface name="net.networkos.netd.DhcpClient"><method name="Callback">
+  <arg name="abstractName" type="s" direction="in" />
+  <arg name="event" type="s" direction="in" />
+  <arg name="ip" type="s" direction="in" />
+  <arg name="subnet" type="s" direction="in" />
+  <arg name="router" type="s" direction="in" />
+</method></interface>

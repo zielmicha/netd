@@ -26,7 +26,6 @@ method info*(plugin: Plugin) {.base.} =
   echo "Plugin %1" % plugin.name
 
 proc addPlugin*(manager: NetworkManager, name: string, plugin: Plugin) =
-  echo "adding plugin $1" % name
   plugin.name = name
   manager.plugins[name] = plugin
 
@@ -56,9 +55,7 @@ proc create*(t: typedesc[NetworkManager]): NetworkManager =
   result.pluginGeneratedConfigs = initTable[string, Suite]()
 
 proc loadConfig*(self: NetworkManager, filename: string) =
-  let f = open(filename)
-  defer: f.close
-  self.mainConfig = parse(f.readAll(), filename, mainCommands)
+  self.mainConfig = parse(readFile(filename), filename, mainCommands)
 
 proc setPluginGeneratedConfig*(self: NetworkManager, typ: typedesc, config: Suite) =
   self.pluginGeneratedConfigs[name(typ)] = config

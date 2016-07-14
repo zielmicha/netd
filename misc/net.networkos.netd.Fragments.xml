@@ -1,0 +1,6 @@
+<interface name="net.networkos.netd.Fragments">
+  <method name="LoadFragment">
+    <arg name="name" type="s" direction="in" />
+    <arg name="config" type="s" direction="in" />
+  </method>
+</interface>

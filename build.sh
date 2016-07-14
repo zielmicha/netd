@@ -10,10 +10,10 @@ fi
 mkdir -p .nimenv/nim
 mkdir -p .nimenv/deps
 
-NIMHASH=5d149dad6791562b44631392ad64fd4740a2bd65b7bbfebfc921ba74564c3870
+NIMHASH=8f8d38d70ed57164795fc55e19de4c11488fcd31dbe42094e44a92a23e3f5e92
 if ! [ -e .nimenv/nimhash -a \( "$(cat .nimenv/nimhash)" = "$NIMHASH" \) ]; then
-  echo "Downloading Nim https://users.atomshare.net/~zlmch/nim-0.13.0+d2ddeb4.tar.xz (sha256: $NIMHASH)"
-  wget https://users.atomshare.net/~zlmch/nim-0.13.0+d2ddeb4.tar.xz -O .nimenv/nim.tar.xz
+  echo "Downloading Nim http://nim-lang.org/download/nim-0.14.2.tar.xz (sha256: $NIMHASH)"
+  wget http://nim-lang.org/download/nim-0.14.2.tar.xz -O .nimenv/nim.tar.xz
   if ! [ "$(sha256sum < .nimenv/nim.tar.xz)" = "$NIMHASH  -" ]; then
     echo "verification failed"
     exit 1
@@ -56,7 +56,7 @@ get_dep() {
 echo "path: \".\"" > nim.cfg
 
 get_dep collections https://github.com/zielmicha/collections.nim 76fc5e7500adf814d500a0c8261aafba5928a692 ''
-get_dep dbus https://github.com/zielmicha/nim-dbus 5981c28ee19f292863c8a5487359a37d713c7015 ''
+get_dep dbus https://github.com/zielmicha/nim-dbus 0be4bfd4022ad1dd7d0459de2e4513ee8188f74e ''
 get_dep libcommon https://github.com/networkosnet/libcommon 9346c14dc38739c61498803fbfd692a068482940 ''
 get_dep niceconf https://github.com/networkosnet/niceconf ccf617c397e6c8933d9fca910524136c45e3af8a ''
 get_dep reactor https://github.com/zielmicha/reactor.nim e1838c1d6d1091661f4be401cc8573ac485d54bd ''

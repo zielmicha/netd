@@ -1,7 +1,9 @@
 import os
 import conf/exceptions
 import netd/core
-import dbus, dbus/loop
+import dbus, dbus/lowlevel, dbus/loop
+
+import netd/api/apicore
 
 # Plugins
 import netd/link
@@ -16,12 +18,46 @@ import netd/dbuscore
 import netd/fragments
 import netd/openvpnptp
 
+method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
+  return false
+
+proc baseMain(manager: NetworkManager, params: seq[string]): bool =
+  let bus = getUniqueBus(DBUS_BUS_SYSTEM, "net.networkos.netd")
+  let coreRemote = NetNetworkosNetdCoreRemote.get(bus, ObjectPath("/net/networkos/netd"))
+  case params[0]:
+    of "daemon":
+      if params.len > 2:
+        echo "expected exactly at most one argument"
+        quit 1
+      let config = if params.len == 2: params[1] else: "/etc/netd.conf"
+      let bus = getBus(dbus.DBUS_BUS_SYSTEM)
+      let mainLoop = MainLoop.create(bus)
+
+      manager.getPlugin(DbusCorePlugin).init(bus)
+
+      try:
+        manager.loadConfig(config)
+        manager.reload()
+      except ConfError:
+        (ref ConfError)(getCurrentException()).printError()
+
+      mainLoop.runForever()
+      return true
+    of "loadconfig":
+      coreRemote.LoadConfig(params[1])
+      return true
+    of "reload":
+      coreRemote.Reload()
+      return true
+    else:
+      return false
+
 proc main*() =
   let params = os.commandLineParams()
-  if params.len != 1:
-    echo "Usage: netd config-file"
+
+  if params.len < 1:
+    echo "Usage: netd command [args...]"
     quit 1
-  let config = params[0]
 
   let manager = NetworkManager.create
 
@@ -40,15 +76,10 @@ proc main*() =
   manager.registerPlugin(AddrStaticPlugin)
   manager.registerPlugin(AddrDhcpPlugin)
 
-  let bus = getBus(dbus.DBUS_BUS_SYSTEM)
-  let mainLoop = MainLoop.create(bus)
+  var ok = manager.baseMain(params)
+  for plugin in manager.iterPlugins:
+    ok = ok or plugin.runMain(params)
 
-  manager.getPlugin(DbusCorePlugin).init(bus)
-
-  try:
-    manager.loadConfig(config)
-    manager.reload()
-  except ConfError:
-    (ref ConfError)(getCurrentException()).printError()
-
-  mainLoop.runForever()
+  if not ok:
+    stderr.writeLine("netd: unexpected command")
+    quit 1

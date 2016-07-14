@@ -1,0 +1,5 @@
+<interface name="net.networkos.netd.Core">
+  <method name="LoadConfig"><arg name="config" type="s" direction="in" /></method>
+  <method name="Reload" />
+  <method name="Exit" />
+</interface>

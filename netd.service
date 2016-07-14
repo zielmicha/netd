@@ -1,10 +1,11 @@
 [Unit]
 Description=netd network manager
+After=dbus.service
 
 [Service]
 # TODO: Type=notify
 Type=simple
-ExecStart=/usr/local/bin/netd /etc/netd.conf
+ExecStart=/usr/local/bin/netd daemon
 
 [Install]
 WantedBy=network.target

@@ -17,6 +17,7 @@ import netd/routing
 import netd/dbuscore
 import netd/fragments
 import netd/openvpnptp
+import netd/iptables
 
 method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
   return false
@@ -75,6 +76,8 @@ proc main*() =
   manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)
   manager.registerPlugin(AddrDhcpPlugin)
+
+  manager.registerPlugin(IptablesPlugin)
 
   var ok = manager.baseMain(params)
   for plugin in manager.iterPlugins:

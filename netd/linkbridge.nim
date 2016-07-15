@@ -23,7 +23,10 @@ method gatherInterfaces*(self: LinkBridgePlugin): seq[ManagedInterface] =
 
 proc getPorts(config: Suite): seq[string] =
   let portsCmd = config.singleCommand("ports", required=false)
-  return portsCmd.args.map(a => a.stringValue)
+  if portsCmd == nil:
+    return @[]
+  else:
+    return portsCmd.args.map(a => a.stringValue)
 
 method beforeSetupInterfaces*(self: LinkBridgePlugin) =
   for v in self.gatherInterfacesWithConfigs():

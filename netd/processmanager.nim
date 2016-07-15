@@ -50,7 +50,7 @@ proc pokeProcess*(self: ProcessManager, key: string, cmd: seq[string],
                   namespace: NamespaceName=RootNamespace, userTag: string=nil) =
   var processInfo: ProcessInfo
   if not self.processes.hasKey(key):
-    processInfo = new(ProcessInfo)
+    processInfo = ProcessInfo()
     processInfo.key = key
     self.processes[key] = processInfo
   else:

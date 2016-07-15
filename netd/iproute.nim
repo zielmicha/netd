@@ -5,7 +5,7 @@ import subprocess, commonnim
 import netd/netlink
 
 type
-  NamespaceName* = string not nil
+  NamespaceName* = string
   ## Location of a kernel interface.
   InterfaceName* = tuple[namespace: NamespaceName, name: string]
 

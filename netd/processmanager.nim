@@ -28,7 +28,7 @@ proc newProcessManager*(): ProcessManager =
 
 proc startProcess(info: ProcessInfo) =
   info.poked = true
-  echo "starting ", $info
+  echo "(", info.namespace, ") starting ", $info
   let env = newStringTable()
   for p in os.envPairs():
     env[p.key] = p.value
@@ -46,7 +46,7 @@ proc terminate(info: ProcessInfo) =
     info.processObj.close()
 
 proc pokeProcess*(self: ProcessManager, key: string, cmd: seq[string],
-                  env: openarray[tuple[key, val: string]],
+                  env: openarray[tuple[key, val: string]]= @[],
                   namespace: NamespaceName=RootNamespace, userTag: string=nil) =
   var processInfo: ProcessInfo
   if not self.processes.hasKey(key):

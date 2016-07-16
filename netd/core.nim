@@ -2,6 +2,8 @@ import tables, typetraits, strutils, os
 import netd/config
 import conf/ast, conf/parse, conf/exceptions
 
+const RunPath* = "/run/netd"
+
 type
   NetworkManager* = ref object
     plugins: OrderedTable[string, Plugin]

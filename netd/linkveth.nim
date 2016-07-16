@@ -90,6 +90,7 @@ method setupInterfaces*(self: LinkVethPlugin) =
         writeAliasProperties(leftInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[0].abstractName))
         applyRename((namespace: leftInterfaceName.namespace, name: rightTmpName),
                     rightInterfaceName)
+        writeAliasProperties(rightInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[1].abstractName))
     else:
       applyRename(livingSides[0].get, leftInterfaceName)
       writeAliasProperties(leftInterfaceName, makeAliasProperties(isSynthetic=true, abstractName=sides[0].abstractName))

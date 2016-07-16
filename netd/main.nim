@@ -18,6 +18,7 @@ import netd/dbuscore
 import netd/fragments
 import netd/openvpnptp
 import netd/iptables
+import netd/dhcpserver
 
 method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
   return false
@@ -30,6 +31,8 @@ proc baseMain(manager: NetworkManager, params: seq[string]): bool =
       if params.len > 2:
         echo "expected exactly at most one argument"
         quit 1
+
+      createDir(RunPath)
       let config = if params.len == 2: params[1] else: "/etc/netd.conf"
       let bus = getBus(dbus.DBUS_BUS_SYSTEM)
       let mainLoop = MainLoop.create(bus)
@@ -78,6 +81,7 @@ proc main*() =
   manager.registerPlugin(AddrDhcpPlugin)
 
   manager.registerPlugin(IptablesPlugin)
+  manager.registerPlugin(DhcpServerPlugin)
 
   var ok = manager.baseMain(params)
   for plugin in manager.iterPlugins:

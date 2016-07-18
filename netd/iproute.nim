@@ -154,6 +154,9 @@ proc ipLinkSet*(ifaceName: InterfaceName, attrs: openarray[(string, string)]) =
 proc ipLinkUp*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "link", "set", "dev", sanitizeArg(ifaceName.name), "up"])
 
+proc ipLinkDown*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["ip", "link", "set", "dev", sanitizeArg(ifaceName.name), "down"])
+
 proc ipLinkAdd*(ifaceName: InterfaceName, typ: string) =
   callIp(ifaceName.namespace, ["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", "bridge"])
 
@@ -178,6 +181,15 @@ proc ipNetnsCreate*(name: string) =
 
 proc ipTunTapAdd*(ifaceName: InterfaceName, mode="tun") =
   callIp(ifaceName.namespace, ["ip", "tuntap", "add", "dev", sanitizeArg(ifaceName.name), "mode", sanitizeArg(mode)])
+
+proc iwSetType*(ifaceName: InterfaceName, kind: string) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "set", "type", sanitizeArg(kind)])
+
+proc iwIbssJoin*(ifaceName: InterfaceName, ssid: string, freq: int) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "ibss", "join", sanitizeArg(ssid), $freq])
+
+proc iwIbssLeave*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "ibss", "leave"])
 
 proc createRootNamespace*() =
   let nsFile = "/var/run/netns/root"

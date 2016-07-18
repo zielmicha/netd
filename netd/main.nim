@@ -19,6 +19,7 @@ import netd/fragments
 import netd/openvpnptp
 import netd/iptables
 import netd/dhcpserver
+import netd/wireless
 
 method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
   return false
@@ -82,6 +83,7 @@ proc main*() =
 
   manager.registerPlugin(IptablesPlugin)
   manager.registerPlugin(DhcpServerPlugin)
+  manager.registerPlugin(WirelessPlugin)
 
   var ok = manager.baseMain(params)
   for plugin in manager.iterPlugins:

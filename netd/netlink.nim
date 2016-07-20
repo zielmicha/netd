@@ -17,12 +17,18 @@ proc parseLink(response: string): NlLink =
   let rtAttrs = unpackRtAttrs(response[sizeof(ifinfomsg)..^1])
   return NlLink(index: ifinfo.index, attrs: rtAttrs)
 
-proc findAttr(link: NlLink, kind: uint16): string =
-  for attr in link.attrs:
+proc findAttr(attrs: seq[RtAttr], kind: uint16): string =
+  for attr in attrs:
     if attr.kind == kind:
       return attr.data
 
   return nil
+
+proc findAttr(link: NlLink, kind: uint16): string =
+  return link.attrs.findAttr(kind)
+
+proc parseNested(data: string): seq[RtAttr] =
+  return unpackRtAttrs(data)
 
 proc asciizToString(s: string): string =
   if s == nil:
@@ -36,6 +42,9 @@ proc alias*(link: NlLink): string =
 
 proc name*(link: NlLink): string =
   link.findAttr(IFLA_IFNAME).asciizToString
+
+proc kind*(link: NlLink): string =
+  link.findAttr(IFLA_LINKINFO).parseNested().findAttr(IFLA_INFO_KIND).asciizToString
 
 proc getLinks*(): seq[NlLink] =
   let msg = ifinfomsg()
@@ -56,4 +65,4 @@ proc getLink*(name: string): NlLink =
 
 when isMainModule:
   for link in getLinks():
-    echo link.index, ": ", link.name
+    echo link.index, ": ", link.name, " (kind: ", link.kind, ")"

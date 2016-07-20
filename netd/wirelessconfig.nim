@@ -13,3 +13,4 @@ let apWirelessCommands = SuiteDef(commands: @[
 addressDefCommands.commands.add cmd("wireless_station", @[valueArgDef(name="name"), suiteArgDef(suiteDef=baseWirelessCommands)])
 addressDefCommands.commands.add cmd("wireless_adhoc", @[valueArgDef(name="name"), suiteArgDef(suiteDef=baseWirelessCommands)])
 addressDefCommands.commands.add cmd("wireless_ap", @[valueArgDef(name="name"), suiteArgDef(suiteDef=apWirelessCommands)])
+addressDefCommands.commands.add cmd("wireless_mesh", @[valueArgDef(name="name"), suiteArgDef(suiteDef=baseWirelessCommands)])

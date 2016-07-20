@@ -1,4 +1,4 @@
-import netd/iproute
+import netd/iproute, netd/netlink
 import conf/ast
 import tables, strutils, sequtils, os
 
@@ -74,7 +74,11 @@ proc removeUnusedInterfaces(self: LinkManager, managed: seq[ManagedInterface]) =
       echo iface.abstractName, " is no longer managed"
       # check if still exists, deleting one side of veth might have deleted other
       if linkExists(iface.interfaceName):
-        ipLinkDel(iface.interfaceName)
+        if getNlLink(iface.interfaceName).kind == nil:
+          # probably wireless interface
+          iwLinkDel(iface.interfaceName)
+        else:
+          ipLinkDel(iface.interfaceName)
 
 proc setupNamespaces(self: LinkManager) =
   createDir("/var/run/netns")

@@ -117,6 +117,10 @@ proc linkExists*(interfaceName: InterfaceName): bool =
         return true
     return false
 
+proc getNlLink*(interfaceName: InterfaceName): NlLink =
+  inNamespace interfaceName.namespace:
+    return getLink(interfaceName.name)
+
 proc callIp*(namespaceName: NamespaceName, args: openarray[string]) =
   inNamespace namespaceName:
     stdout.write "($1) " % namespaceName
@@ -182,6 +186,12 @@ proc ipNetnsCreate*(name: string) =
 proc ipTunTapAdd*(ifaceName: InterfaceName, mode="tun") =
   callIp(ifaceName.namespace, ["ip", "tuntap", "add", "dev", sanitizeArg(ifaceName.name), "mode", sanitizeArg(mode)])
 
+proc iwLinkDel*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "del"])
+
+proc iwInterfaceAdd*(ifaceName: InterfaceName, target: InterfaceName) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "interface", "add", target.name, "type", "ibss"])
+
 proc iwSetType*(ifaceName: InterfaceName, kind: string) =
   callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "set", "type", sanitizeArg(kind)])
 
@@ -190,6 +200,12 @@ proc iwIbssJoin*(ifaceName: InterfaceName, ssid: string, freq: int) =
 
 proc iwIbssLeave*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "ibss", "leave"])
+
+proc iwMeshJoin*(ifaceName: InterfaceName, ssid: string, freq: int) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "mesh", "join", sanitizeArg(ssid), "freq", $freq])
+
+proc iwMeshLeave*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["iw", "dev", sanitizeArg(ifaceName.name), "mesh", "leave"])
 
 proc createRootNamespace*() =
   let nsFile = "/var/run/netns/root"

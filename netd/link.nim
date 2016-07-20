@@ -15,7 +15,7 @@ type
     ##   eth0 - simple ethernet device
     ##   eth0.vlan100 - 802.1q
     ##   eth0.vlan5.vlan100 - 802.1ad (QinQ)
-    ##   wlan0.foobar - virtual AP named foobar
+    ##   wlan0.vif-foobar - virtual AP named foobar
 
     kernelName*: string ## User device name (the one kernel uses)
 

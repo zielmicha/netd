@@ -5,6 +5,9 @@ import dbus, dbus/lowlevel, dbus/loop
 
 import netd/api/apicore
 
+method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
+  return false
+
 # Plugins
 import netd/link
 import netd/linkhw
@@ -20,9 +23,6 @@ import netd/openvpnptp
 import netd/iptables
 import netd/dhcpserver
 import netd/wireless
-
-method runMain*(plugin: Plugin, params: seq[string]): bool {.base.} =
-  return false
 
 proc baseMain(manager: NetworkManager, params: seq[string]): bool =
   let bus = getUniqueBus(DBUS_BUS_SYSTEM, "net.networkos.netd")

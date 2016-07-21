@@ -1,6 +1,7 @@
-import subprocess, conf/ast, strutils, collections/random, os, tables, securehash, options
-import netd/core, netd/processmanager, netd/link, netd/addr, netd/iproute
-
+# Most complete documentation for wpa_supplicant is example configuration file: https://w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf
+import subprocess, conf/ast, strutils, collections/random, os, tables, securehash, options, posix
+import netd/core, netd/processmanager, netd/link, netd/addr, netd/iproute, netd/main
+import netd/dbuscore, dbus, dbus/def, dbus/lowlevel
 include netd/wirelessconfig
 
 type
@@ -16,6 +17,10 @@ type
     interfaceTypes: TableRef[string, WirelessType]
     previousInterfaceTypes: TableRef[string, WirelessType]
 
+    # for station mode wpa_supplicant callback
+    activeNetworks: TableRef[string, string]
+    lastConfigHash: TableRef[string, SecureHash]
+
 const allWirelessCommands = @["wireless_ap", "wireless_station", "wireless_adhoc", "wireless_mesh"]
 
 proc create*(t: typedesc[WirelessPlugin], manager: NetworkManager): WirelessPlugin =
@@ -24,17 +29,23 @@ proc create*(t: typedesc[WirelessPlugin], manager: NetworkManager): WirelessPlug
   result.processManager = newProcessManager()
   result.interfaceTypes = newTable[string, WirelessType]()
   result.previousInterfaceTypes = newTable[string, WirelessType]()
+  result.activeNetworks = newTable[string, string]()
+  result.lastConfigHash = newTable[string, SecureHash]()
 
-proc gatherSubinterfacesWithConfigs*(self: WirelessPlugin, config: Suite, abstractParentName: string): ManagedInterfaceWithConfigSeq =
+include netd/wirelessstation
+
+proc gatherSubinterfacesWithConfigs*(self: WirelessPlugin, config: Suite, abstractParentName: string, publicIfaces: bool): ManagedInterfaceWithConfigSeq =
   result = @[]
 
   for command in config.commands:
     if command.name in allWirelessCommands:
       let name = command.args[0].stringValue
-      let config = command.args[1].suite
+      var config = command.args[1].suite
 
       var iface = ManagedInterface()
       if name == "default":
+        if publicIfaces:
+          continue
         iface.abstractName = abstractParentName
         iface.isSynthetic = false
       else:
@@ -48,17 +59,23 @@ proc gatherSubinterfacesWithConfigs*(self: WirelessPlugin, config: Suite, abstra
         "wireless_mesh": WirelessType.mesh,
         })[command.name]
 
+      if publicIfaces:
+        if command.name == "wireless_station":
+          # In station mode, configure network only after connecting to network
+          let newConfig = self.stationSubinterface(iface, config)
+          if config != nil:
+            config = newConfig
+
       let newName = getRename(iface.abstractName, config)
       # TODO: moving to NS requires use of `iw phy`
       iface.kernelName = newName.name
       iface.namespaceName = newName.namespace
 
-      if name != "default":
-        result.add((iface, config))
+      result.add((iface, config))
 
 method gatherSubinterfaces*(self: WirelessPlugin, config: Suite, abstractParentName: string): seq[ManagedInterface] =
   result = @[]
-  for p in self.gatherSubinterfacesWithConfigs(config, abstractParentName):
+  for p in self.gatherSubinterfacesWithConfigs(config, abstractParentName, publicIfaces=true):
     let (iface, config) = p
     result.add(iface)
     result &= self.getPlugin(LinkManager).gatherSubinterfacesAll(config, iface.abstractName)
@@ -87,16 +104,39 @@ proc configureAp(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
                                   namespace=iface.namespaceName,
                                   usertag= $secureHash(configStr))
 
+
+proc configureAdhoc(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
+  ipLinkUp(iface.interfaceName)
+  try: # TODO
+    iwIbssLeave(iface.interfaceName)
+  except:
+    discard
+
+  iwIbssJoin(iface.interfaceName,
+             config.singleValue("ssid").stringValue,
+             config.singleValue("freq").intValue)
+
+proc configureMesh(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
+  ipLinkUp(iface.interfaceName)
+  try: # TODO
+    iwMeshLeave(iface.interfaceName)
+  except:
+    discard
+
+  iwMeshJoin(iface.interfaceName,
+             config.singleValue("ssid").stringValue,
+             config.singleValue("freq").intValue)
+
 method configureInterface*(self: WirelessPlugin, parentIface: ManagedInterface, parentConfig: Suite) =
   let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()
 
-  for p in self.gatherSubinterfacesWithConfigs(parentConfig, parentIface.abstractName):
+  for p in self.gatherSubinterfacesWithConfigs(parentConfig, parentIface.abstractName, publicIfaces=false):
     let (iface, config) = p
     let kind = self.interfaceTypes[iface.abstractName]
 
     let existingIface = findLivingInterface(interfaces, iface.abstractName)
+
     # TODO: handle renames of `default`
-    echo iface
     if iface.isSynthetic:
       if existingIface.isSome:
         applyRename(existingIface.get, iface.interfaceName)
@@ -108,43 +148,25 @@ method configureInterface*(self: WirelessPlugin, parentIface: ManagedInterface, 
     if iface.abstractName notin self.previousInterfaceTypes or kind != self.previousInterfaceTypes[iface.abstractName] or not existingIface.isSome:
       ipLinkDown(iface.interfaceName)
 
-      case kind:
-        of WirelessType.adhoc:
-          iwSetType(iface.interfaceName, "ibss")
-        of WirelessType.ap:
-          iwSetType(iface.interfaceName, "__ap")
-        of WirelessType.mesh:
-          iwSetType(iface.interfaceName, "mp")
-        of WirelessType.station:
-          iwSetType(iface.interfaceName, "managed")
+      iwSetType(iface.interfaceName, toTable({
+        WirelessType.adhoc: "ibss",
+        WirelessType.ap: "__ap",
+        WirelessType.mesh: "mp",
+        WirelessType.station: "managed",
+      })[kind])
 
     case kind:
       of WirelessType.adhoc:
-        ipLinkUp(iface.interfaceName)
-        try: # TODO
-          iwIbssLeave(iface.interfaceName)
-        except:
-          discard
-
-        iwIbssJoin(iface.interfaceName,
-                   config.singleValue("ssid").stringValue,
-                   config.singleValue("freq").intValue)
+        self.configureAdhoc(iface, config)
       of WirelessType.mesh:
-        ipLinkUp(iface.interfaceName)
-        try: # TODO
-          iwMeshLeave(iface.interfaceName)
-        except:
-          discard
-
-        iwMeshJoin(iface.interfaceName,
-                   config.singleValue("ssid").stringValue,
-                   config.singleValue("freq").intValue)
+        self.configureMesh(iface, config)
       of WirelessType.ap:
         self.configureAp(iface, config)
       of WirelessType.station:
-        discard
+        self.configureStation(iface, config)
 
-    self.getPlugin(LinkManager).configureInterfaceAll(iface, config)
+    if kind != WirelessType.station:
+      self.getPlugin(LinkManager).configureInterfaceAll(iface, config)
 
 method afterSetupInterfaces*(self: WirelessPlugin) =
   self.previousInterfaceTypes = self.interfaceTypes

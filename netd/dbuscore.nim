@@ -30,7 +30,7 @@ coreDef.addMethod(Exit, [], [])
 coreDef.addMethod(LoadConfig, [("config", string)], [])
 
 method dbusInit*(plugin: Plugin) {.base.} =
-  nil
+  discard
 
 method dbusInit(self: DbusCorePlugin) =
   self.netdObject.addInterface("net.networkos.netd.Core", coreDef, self)

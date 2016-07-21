@@ -47,7 +47,9 @@ proc terminate(info: ProcessInfo) =
 
 proc pokeProcess*(self: ProcessManager, key: string, cmd: seq[string],
                   env: openarray[tuple[key, val: string]]= @[],
-                  namespace: NamespaceName=RootNamespace, userTag: string=nil) =
+                  namespace: NamespaceName=RootNamespace, userTag: string=nil): bool {.discardable.} =
+  ## Make sure process is running (given cmd, env and network namespace).
+  ## Returns true if new process was started.
   var processInfo: ProcessInfo
   if not self.processes.hasKey(key):
     processInfo = ProcessInfo()
@@ -61,6 +63,7 @@ proc pokeProcess*(self: ProcessManager, key: string, cmd: seq[string],
       processInfo.poked = true
     else:
       echo "process ", $processInfo, "has exited"
+    return false
   else:
     processInfo.terminate()
 
@@ -69,6 +72,7 @@ proc pokeProcess*(self: ProcessManager, key: string, cmd: seq[string],
     processInfo.cmd = cmd
     processInfo.userTag = userTag
     startProcess(processInfo)
+    return true
 
 proc teardownNotPoked*(self: ProcessManager) =
   var newProcesses: Table[string, ProcessInfo] = initTable[string, ProcessInfo]()

@@ -8,6 +8,7 @@
 * flush addresses on non-synthetic interfaces that were managed but now aren't
 * before rename iface it need to be down
 * make sure abstract names can be path components
+* 802.11n/ac support (AP)
 
 ## features
 

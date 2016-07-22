@@ -6,3 +6,4 @@ nimcache/
 .nimenv
 nimenv.local
 *.ndb
+/nim.cfg

@@ -1,8 +1,8 @@
 import reactor/ipaddress
 import netd/core, netd/link, netd/iproute, netd/routing, netd/processmanager
-import netd/dbuscore, dbus, dbus/def
+import netd/dbuscore, dbus, dbus/def, dbus/lowlevel
 import conf/ast
-import commonnim, options, strutils, tables
+import commonnim, options, strutils, tables, os
 
 include netd/addrdhcpconfig
 
@@ -24,6 +24,23 @@ proc create*(t: typedesc[AddrDhcpPlugin], manager: NetworkManager): AddrDhcpPlug
   result.manager = manager
   result.processManager = newProcessManager()
   result.waitingConfigs = initTable[string, DhcpConfig]()
+
+method runMain*(plugin: AddrDhcpPlugin, params: seq[string]): bool =
+  if params[0] == "_dhcp_callback":
+    let bus = getBus(DBUS_BUS_SYSTEM)
+    let msg = makeCall("net.networkos.netd", ObjectPath("/net/networkos/netd"), "net.networkos.netd.DhcpClient", "Callback")
+    msg.append(os.getenv("abstractName"))
+    msg.append(params[1])
+    msg.append(os.getenv("ip"))
+    msg.append(os.getenv("subnet"))
+    msg.append(os.getenv("router"))
+    let reply = bus.sendMessageWithReply(msg).waitForReply
+    defer: reply.close
+    reply.raiseIfError
+
+    return true
+  else:
+    return false
 
 proc Callback(self: AddrDhcpPlugin, abstractName: string,
               event: string, ip: string, subnet: string, router: string) =
@@ -60,9 +77,10 @@ method configureInterfaceAdress*(self: AddrDhcpPlugin, iface: ManagedInterface, 
     return false
 
   ipLinkUp(iface.interfaceName)
+  let scriptPath = makeScript("dhcp-callback.sh", "#!/bin/sh\n" & getAppDir() & "/netd _dhcp_callback \"$1\"")
   self.processManager.pokeProcess(key=iface.abstractName,
                                   cmd= @["busybox", "udhcpc",
-                                         "--script", getScriptPath("udhcpc-callback.sh"),
+                                         "--script", scriptPath,
                                          "--foreground",
                                          "--interface", iface.kernelName],
                                   env= {"abstractName": iface.abstractName},

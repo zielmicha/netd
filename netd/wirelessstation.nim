@@ -65,10 +65,7 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
   let controlPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".sock"
   let configPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".conf"
 
-  let notifyScript = RunPath / "wpa-supplicant-notify.sh"
-  if not fileExists(notifyScript):
-    writeFile(notifyScript, "#!/bin/sh\n" & getAppDir() & "/netd _wpa_callback \"$1\" \"$2\"")
-    discard chmod(notifyScript, 0o700)
+  let notifyScript = makeScript("wpa-supplicant-callback.sh", "#!/bin/sh\n" & getAppDir() & "/netd _wpa_callback \"$1\" \"$2\"")
 
   var configStr = ""
   configStr &= "ap_scan=1\n"
@@ -77,6 +74,7 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
 
   let sockPath = controlPath / iface.kernelName
   writeFile(configPath, configStr)
+  discard chmod(configPath, 0o700)
 
   let started = self.processManager.pokeProcess(
     key="supplicant-" & iface.abstractName,

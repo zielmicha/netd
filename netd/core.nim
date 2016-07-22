@@ -1,4 +1,4 @@
-import tables, typetraits, strutils, os
+import tables, typetraits, strutils, os, posix
 import netd/config
 import conf/ast, conf/parse, conf/exceptions
 
@@ -85,5 +85,10 @@ proc exit*(self: NetworkManager) =
   for name, plugin in self.plugins:
     plugin.exit
 
-proc getScriptPath*(name: string): string =
-  getAppDir() & "/../scripts/" & name
+proc makeScript*(name: string, data: string): string =
+  let path = RunPath / name
+  if not fileExists(path):
+    writeFile(path, data)
+    discard chmod(path, 0o755)
+
+  return path

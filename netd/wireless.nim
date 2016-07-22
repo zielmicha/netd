@@ -108,7 +108,7 @@ proc configureAp(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
 proc configureAdhoc(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
   let ssid = config.singleValue("ssid").stringValue
   let freq = config.singleValue("freq").intValue
-  let passphrase = config.singleValue("passphrase").stringValue
+  let passphrase = config.singleValue("passphrase", required=false).stringValue
 
   let configPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".conf"
   var configStr = "ap_scan=2\n"
@@ -138,7 +138,7 @@ proc configureAdhoc(self: WirelessPlugin, iface: ManagedInterface, config: Suite
 proc configureMesh(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
   let ssid = config.singleValue("ssid").stringValue
   let freq = config.singleValue("freq").intValue
-  let passphrase = config.singleValue("passphrase").stringValue
+  let passphrase = config.singleValue("passphrase", required=false).stringValue
 
   let configPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".conf"
   var configStr = "network={\n"

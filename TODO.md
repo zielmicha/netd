@@ -16,3 +16,4 @@
 * openvpn server/client
 * CJDNS peer + tunnel
 * multilink client
+* we need to wait a bit after killing wpa_supplicant

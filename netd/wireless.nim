@@ -106,26 +106,60 @@ proc configureAp(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
 
 
 proc configureAdhoc(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
-  ipLinkUp(iface.interfaceName)
-  try: # TODO
-    iwIbssLeave(iface.interfaceName)
-  except:
-    discard
+  let ssid = config.singleValue("ssid").stringValue
+  let freq = config.singleValue("freq").intValue
+  let passphrase = config.singleValue("passphrase").stringValue
 
-  iwIbssJoin(iface.interfaceName,
-             config.singleValue("ssid").stringValue,
-             config.singleValue("freq").intValue)
+  let configPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".conf"
+  var configStr = "ap_scan=2\n"
+  configStr &= "network={\n"
+  configStr &= "  mode=1\n"
+  configStr &= "  ssid=\"" & ssid & "\"\n"
+  configStr &= "  frequency=" & $freq & "\n"
+  if passphrase == nil:
+    configStr &= "  key_mgmt=NONE\n"
+  else:
+    # this is not too secure
+    configStr &= "  key_mgmt=WPA-NONE\n"
+    configStr &= "  proto=WPA\n"
+    configStr &= "  pairwise=NONE\n"
+    configStr &= "  group=CCMP\n"
+    configStr &= "  psk=\"" & passphrase & "\"\n"
+  configStr &= "}"
+  writeFile(configPath, configStr)
+
+  self.processManager.pokeProcess(key=iface.abstractName,
+                                  cmd= @["wpa_supplicant",
+                                         "-i", iface.kernelName,
+                                         "-c", configPath],
+                                  namespace=iface.namespaceName,
+                                  usertag= $secureHash(configStr))
 
 proc configureMesh(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
-  ipLinkUp(iface.interfaceName)
-  try: # TODO
-    iwMeshLeave(iface.interfaceName)
-  except:
-    discard
+  let ssid = config.singleValue("ssid").stringValue
+  let freq = config.singleValue("freq").intValue
+  let passphrase = config.singleValue("passphrase").stringValue
 
-  iwMeshJoin(iface.interfaceName,
-             config.singleValue("ssid").stringValue,
-             config.singleValue("freq").intValue)
+  let configPath = RunPath / "wpa-supplicant-" & iface.abstractName & ".conf"
+  var configStr = "network={\n"
+  configStr &= "  mode=5\n"
+  configStr &= "  ssid=\"" & ssid & "\"\n"
+  configStr &= "  frequency=" & $freq & "\n"
+  if passphrase == nil:
+    configStr &= "  key_mgmt=NONE\n"
+  else:
+    configStr &= "  key_mgmt=SAE\n"
+    configStr &= "  psk=\"" & passphrase & "\"\n"
+  configStr &= "}"
+  writeFile(configPath, configStr)
+
+  self.processManager.pokeProcess(key=iface.abstractName,
+                                  cmd= @["wpa_supplicant",
+                                         "-i", iface.kernelName,
+                                         "-c", configPath],
+                                  namespace=iface.namespaceName,
+                                  usertag= $secureHash(configStr))
+
 
 method configureInterface*(self: WirelessPlugin, parentIface: ManagedInterface, parentConfig: Suite) =
   let interfaces = self.getPlugin(LinkManager).listLivingInterfaces()

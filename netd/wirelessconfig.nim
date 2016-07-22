@@ -3,6 +3,7 @@ import netd/config, conf/defs
 let baseWirelessCommands = SuiteDef(commands: @[
   cmd("ssid", singleValueArgDef()),
   cmd("freq", singleValueArgDef()),
+  cmd("passphrase", singleValueArgDef())
 ], includeSuites: @[linkCommands])
 
 let apWirelessCommands = SuiteDef(commands: @[
@@ -10,13 +11,9 @@ let apWirelessCommands = SuiteDef(commands: @[
   cmd("passphrase", singleValueArgDef()),
 ], includeSuites: @[baseWirelessCommands])
 
-let stationNetwork = SuiteDef(commands: @[
-  cmd("passphrase", singleValueArgDef())
-], includeSuites: @[baseWirelessCommands])
-
 let stationWirelessCommands = SuiteDef(commands: @[
   cmd("name", singleValueArgDef()),
-  cmd("network", @[suiteArgDef(suiteDef=stationNetwork)]),
+  cmd("network", @[suiteArgDef(suiteDef=baseWirelessCommands)]),
   cmd("passphrase", singleValueArgDef()),
 ])
 

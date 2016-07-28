@@ -51,6 +51,10 @@ proc baseMain(manager: NetworkManager, params: seq[string]): bool =
     of "loadconfig":
       coreRemote.LoadConfig(params[1])
       return true
+    of "reloadconfig":
+      coreRemote.LoadConfig(params[1])
+      coreRemote.Reload()
+      return true
     of "reload":
       coreRemote.Reload()
       return true

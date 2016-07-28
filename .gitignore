@@ -7,3 +7,4 @@ nimcache/
 nimenv.local
 *.ndb
 /nim.cfg
+/build

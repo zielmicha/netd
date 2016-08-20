@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-#./build.sh
+./build.sh
 rm -r build/deb || true
 p=build/deb/netd
 mkdir -p $p/DEBIAN $p/usr/local/bin $p/etc/dbus-1/system.d $p/lib/systemd/system
@@ -12,7 +12,7 @@ install netd.service $p/lib/systemd/system/
 cat > $p/DEBIAN/control <<EOF
 Package: netd
 Version: 0.1
-Depends: libdbus-1-3
+Depends: libdbus-1-3, iptables, iproute2, iw, busybox | busybox-static, hostapd, wpa_supplicant
 Section: custom
 Priority: optional
 Architecture: $(dpkg --print-architecture)

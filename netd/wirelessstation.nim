@@ -94,6 +94,8 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
     let passphrase = network.singleValue("passphrase", required=false).stringValue
     if passphrase != nil:
       configStr &= "  psk=\"" & passphrase & "\"\n"
+    else:
+      configStr &= "  key_mgmt=NONE\n"
     configStr &= "}\n"
 
   # wait until wpa_supplicant starts

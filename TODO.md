@@ -9,11 +9,17 @@
 * before rename iface it need to be down
 * make sure abstract names can be path components
 * 802.11n/ac support (AP)
+* we need to wait a bit after killing wpa_supplicant
 
 ## features
 
-* wireless client
 * openvpn server/client
 * CJDNS peer + tunnel
 * multilink client
-* we need to wait a bit after killing wpa_supplicant
+* configure forwading
+* [optional] resolvconf integration
+
+## high level interface
+
+* bridge: route_parent (setup masq)
+* easy internet sharing (as in MacOSX)

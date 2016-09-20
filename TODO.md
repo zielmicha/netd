@@ -18,6 +18,8 @@
 * multilink client
 * configure forwading
 * [optional] resolvconf integration
+* switch support (portgroup)
+* gvpe
 
 ## high level interface
 

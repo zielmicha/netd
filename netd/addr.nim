@@ -14,8 +14,6 @@ proc create*(t: typedesc[AddrManager], manager: NetworkManager): AddrManager =
   result.manager = manager
 
 method configureInterface*(self: AddrManager, iface: ManagedInterface, config: Suite) =
-  ## Configure misc and subinterfaces for given `ManagedInterface`
-
   var taken: bool = false
   for plugin in self.manager.iterPlugins:
     if plugin.configureInterfaceAdress(iface, config):

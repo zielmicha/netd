@@ -13,6 +13,7 @@ import netd/link
 import netd/linkhw
 import netd/linkveth
 import netd/linkbridge
+import netd/linkvlan
 import netd/addr
 import netd/addrstatic
 import netd/addrdhcp
@@ -76,14 +77,16 @@ proc main*() =
   manager.registerPlugin(DbusCorePlugin)
   manager.registerPlugin(FragmentsPlugin)
 
-  manager.registerPlugin(LinkBridgePlugin)
-  manager.registerPlugin(LinkVethPlugin)
-  manager.registerPlugin(LinkHwPlugin)
-  manager.registerPlugin(OpenvpnPtpPlugin)
-
+  # addressing should happen before children are created
   manager.registerPlugin(AddrManager)
   manager.registerPlugin(AddrStaticPlugin)
   manager.registerPlugin(AddrDhcpPlugin)
+
+  manager.registerPlugin(LinkBridgePlugin)
+  manager.registerPlugin(LinkVethPlugin)
+  manager.registerPlugin(LinkHwPlugin)
+  manager.registerPlugin(LinkVlanPlugin)
+  manager.registerPlugin(OpenvpnPtpPlugin)
 
   manager.registerPlugin(IptablesPlugin)
   manager.registerPlugin(DhcpServerPlugin)

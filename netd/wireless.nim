@@ -74,6 +74,7 @@ proc gatherSubinterfacesWithConfigs*(self: WirelessPlugin, config: Suite, abstra
       result.add((iface, config))
 
 method gatherSubinterfaces*(self: WirelessPlugin, config: Suite, abstractParentName: string): seq[ManagedInterface] =
+  # use gatherInterfacesRecursive?
   result = @[]
   for p in self.gatherSubinterfacesWithConfigs(config, abstractParentName, publicIfaces=true):
     let (iface, config) = p

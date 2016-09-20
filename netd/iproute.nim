@@ -161,8 +161,11 @@ proc ipLinkUp*(ifaceName: InterfaceName) =
 proc ipLinkDown*(ifaceName: InterfaceName) =
   callIp(ifaceName.namespace, ["ip", "link", "set", "dev", sanitizeArg(ifaceName.name), "down"])
 
-proc ipLinkAdd*(ifaceName: InterfaceName, typ: string) =
-  callIp(ifaceName.namespace, ["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", "bridge"])
+proc ipLinkAdd*(ifaceName: InterfaceName, typ: string, args: openarray[string] = @[]) =
+  callIp(ifaceName.namespace, @["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "type", typ] & @args)
+
+proc ipLinkAddVlan*(ifaceName: InterfaceName, typ: string, id: string, parent: string) =
+  callIp(ifaceName.namespace, @["ip", "link", "add", "dev", sanitizeArg(ifaceName.name), "link", parent, "type", typ, "id", id])
 
 proc ipLinkAddVeth*(namespaceName: NamespaceName, leftName: string, rightName: string) =
   callIp(namespaceName, ["ip", "link", "add", "dev", sanitizeArg(leftName), "type", "veth", "peer", "name", rightName])

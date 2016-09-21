@@ -8,14 +8,19 @@ proc create*(t: typedesc[IptablesPlugin], manager: NetworkManager): IptablesPlug
   new(result)
   result.manager = manager
 
-let tables = ["filter", "nat", "mangle", "raw"]
+let tables = ["filter", "nat", "mangle", "raw",
+              "filter6"]
+              #"nat6", "mangle6", "raw6"]
 
 method reload(self: IptablesPlugin) =
   for table in tables:
-    var header: seq[string] = @["*" & table]
+    let is6 = table[^1] == '6'
+    let rawName = if is6: table[0..^2] else: table
+    let commandPrefix = if is6: "ip6tables" else: "iptables"
+    var header: seq[string] = @["*" & rawName]
     var body: seq[string] = @[]
 
-    for line in checkOutput(@["iptables-save", "-t", table]).splitLines():
+    for line in checkOutput(@[commandPrefix & "-save", "-t", rawName]).splitLines():
       if line.startswith("#") or line.startswith("*") or line == "COMMIT" or line.len == 0:
         continue
       elif line.startswith(":"):
@@ -62,8 +67,9 @@ method reload(self: IptablesPlugin) =
     let data = (header & body).join("\n")
     writeFile(fileName, data)
     try:
-      checkCall(@["iptables-restore", fileName])
+      checkCall(@[commandPrefix & "-restore", fileName])
     except CalledProcessError:
       echo data
+      removeFile(fileName)
       raise newException(Exception, "failed to load iptables table " & table)
     removeFile(fileName)

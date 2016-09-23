@@ -9,10 +9,13 @@ install bin/netd $p/usr/local/bin/
 install -m644 net.networkos.netd.conf $p/etc/dbus-1/system.d/
 install netd.service $p/lib/systemd/system/
 
+VERSION="0.1.2"
+
 cat > $p/DEBIAN/control <<EOF
 Package: netd
-Version: 0.1
-Depends: libdbus-1-3, iptables, iproute2, iw, busybox | busybox-static, hostapd, wpa_supplicant
+Version: $VERSION
+Depends: libdbus-1-3, iptables, iproute2, busybox | busybox-static
+Recommends: iw, hostapd, wpasupplicant
 Section: custom
 Priority: optional
 Architecture: $(dpkg --print-architecture)
@@ -24,3 +27,4 @@ EOF
 
 cd build/deb
 fakeroot dpkg-deb --build netd
+mv netd.deb netd-$VERSION-$(dpkg --print-architecture).deb

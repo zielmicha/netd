@@ -2,7 +2,7 @@
 
 netd is an advanced network manager for Linux desktops, servers and embedded systems.
 
-It supports advanced configuration involving multiple interfaces, VPNs, network namespaces and much more. netd currently is in beta, some features are unstable (see _features_ section).
+It supports advanced configuration involving multiple interfaces, VPNs, network namespaces and much more. netd currently is in beta, some features are unstable (see _features_ section). Read more in [documentation](doc.org).
 
 ## features
 

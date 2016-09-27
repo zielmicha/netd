@@ -16,6 +16,7 @@ It supports advanced configuration involving multiple interfaces, VPNs, network 
   - hardware/externally created devices (`link dev`)
   - bridge (`bridge`)
   - virtual ethernet (`veth`)
+  - VLAN (`vlan`)
 - VPN:
   - openvpn point-to-point links (`openvpn_ptp`)
 - wireless:

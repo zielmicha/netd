@@ -30,7 +30,6 @@ interface name (given by udev or kernel, =ens0= in this case), not the
 target name (=eth0= in this case).
 
 * Network namespaces
-
 Use bare =namespace XXX;= command to declare that network namespace
 named =XXX= is managed by netd.
 
@@ -63,7 +62,7 @@ Example
         # Configure address and the default gateway.
         static {
             address 10.9.0.15/24;
-            default_route 10.19.0.1;
+            gateway 10.19.0.1;
         };
 
         # Configure another address on the same interface
@@ -78,7 +77,7 @@ All options:
 #+BEGIN_EXAMPLE
     static {
         address ip/mask; # IP address and subnet mask (required)
-        default_route ip; # IP of defautl route (optional)
+        gateway ip; # IP of the default route (optional)
         peer_address ip/mask; # peer IP address in case of point-to-point links (optional)
     };
 #+END_EXAMPLE
@@ -91,6 +90,107 @@ Obtaining address using DHCP is straightforward:
     link dev eth0 {
         dhcp {};
     };
+#+END_EXAMPLE
+
+* Interfaces
+** Hardware/external interfaces
+
+Use =link dev= to match hardware interface or interface created by another program.
+
+#+BEGIN_EXAMPLE
+link dev ens0 {
+    ...
+};
+#+END_EXAMPLE
+** Bridges
+
+=bridge= command creates a new bridge.
+
+#+BEGIN_EXAMPLE
+bridge mybr0 {
+    ports ens0 ens1;
+};
+#+END_EXAMPLE
+** Veth (virtual ethernet)
+
+=veth= creates a new virtual ethernet cable. It is mainly used for connecting two network namespace.
+
+#+BEGIN_EXAMPLE
+veth test {
+    left { # interace name = test.l
+       namespace f1;
+       ...
+    };
+    right {  # interace name = test.r
+       ...
+    };
+};
+#+END_EXAMPLE
+** VLAN (802.1s)
+
+=vlan= command can be used inside link declaration to create VLAN interfaces on a given link.
+
+#+BEGIN_EXAMPLE
+link dev ens0 {
+    vlan 100 {
+        name v100; # rename from ens0.vlan100 to v100
+    };
+    vlan 101 {
+        static { address 192.168.0.1/24; }
+    };
+};
+#+END_EXAMPLE
+
+* Tunnels/VPNs
+** OpenVPN point-to-point
+
+OpenVPN point-to-point configuration establishes L3 tunnel between two hosts.
+
+#+BEGIN_EXAMPLE
+openvpn_ptp ovpnclient {
+    connect udp 10.9.0.3 7000;
+    key ./openvpn_shared_key; # generate this file with `openvpn --genkey --secret openvpn_shared_key`
+
+    static { # configure address (this is just normal example of static addressing)
+        address 10.10.0.2;
+        peer_address 10.10.0.3;
+    }
+};
+
+openvpn_ptp ovpnserver {
+    listen udp 0.0.0.0 7000; # listen on UDP port 7000 on all interfaces
+    key ./openvpn_shared_key;
+
+    static {
+        address 10.10.0.3;
+        peer_address 10.10.0.2;
+    }
+};
+#+END_EXAMPLE
+
+** WireGuard
+
+WireGuard is a modern VPN that utilizes state-of-the-art cryptography (http://wireguard.io).
+It can run both in kernel and in userspace.
+
+#+BEGIN_EXAMPLE
+wireguard wg0 {
+    namespace foo; # move interface to namespace foo
+    connection_namespace root; # send packets from root namespace
+    private_key [key];
+    listen 4567;
+
+    peer {
+        public_key [key];
+        allowed_src 10.0.0.9; # allow only packets from this address
+        connect 192.95.5.69 41414;
+    };
+    peer {
+        public_key [key];
+        allowed_src 192.168.0.0/16;
+        # there is no `connect` - this peer will have to initiate connection
+    };
+};
 #+END_EXAMPLE
 
 * Wireless setup

@@ -87,16 +87,19 @@ method configureInterfaceAdress*(self: AddrDhcpPlugin, iface: ManagedInterface, 
                                   namespace=iface.namespaceName)
 
   if self.waitingConfigs.hasKey(iface.abstractName):
-    let config = self.waitingConfigs[iface.abstractName]
+    let dhcpConfig = self.waitingConfigs[iface.abstractName]
 
-    if not config.configured:
+    if not dhcpConfig.configured:
       ipAddrFlush(iface.interfaceName)
     else:
       ipAddrFlush(iface.interfaceName)
-      ipAddrAdd(iface.interfaceName, $config.ipInterface)
-      self.manager.getPlugin(RoutingManager).addDefaultGateway(via= $config.gateway,
-                                                               forIp=config.ipInterface.address,
-                                                               namespace=iface.namespaceName)
+      ipAddrAdd(iface.interfaceName, $dhcpConfig.ipInterface)
+
+      self.manager.getPlugin(RoutingManager).configureInterfaceRoutes(
+        config=config,
+        iface=iface,
+        address=dhcpConfig.ipInterface.address,
+        overrideGateway=some(dhcpConfig.gateway))
 
   return true
 

@@ -20,7 +20,6 @@ method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface
   for staticCommand in config.commandsWithName("static"):
     let body = staticCommand.args.unpackSeq1().suite
     let addressStr = body.singleValue("address", required=true).stringValue
-    let gateway = body.singleValue("gateway", required=false).stringValue
     let peerAddress = body.singleValue("peer_address", required=false).stringValue
 
     let ipInterface = addressStr.parseInterface
@@ -28,9 +27,9 @@ method configureInterfaceAdress*(self: AddrStaticPlugin, iface: ManagedInterface
     ipAddrAdd(iface.interfaceName, $ipInterface, peerAddress = peerAddress)
     ipLinkUp(iface.interfaceName)
 
-    if gateway != nil:
-      self.manager.getPlugin(RoutingManager).addDefaultGateway(via=gateway,
-                                                               forIp=ipInterface.address,
-                                                               namespace=iface.namespaceName)
+    self.manager.getPlugin(RoutingManager).configureInterfaceRoutes(
+      config=body,
+      iface=iface,
+      address=ipInterface.address)
 
   return true

@@ -1,7 +1,18 @@
 import conf/defs, conf/parse, conf/ast, conf/exceptions
 
+let routeTargets* = SuiteDef(commands: @[
+  cmd("via", singleValueArgDef()),
+  cmd("local", emptyArgDef()),
+])
+
 let baseAdressingCommands* = SuiteDef(commands: @[
-  cmd("default_route", emptyArgDef())
+  cmd("default", emptyArgDef()),
+  cmd("route", @[
+    valueArgDef(name="network"),
+    suiteArgDef(name="target",
+                suiteDef=routeTargets.valueThunk,
+                isCommand=true),
+  ])
 ])
 
 # Address definition

@@ -1,3 +1,4 @@
+
 ## implementation
 
 * make sure that lo interface is up and has address
@@ -10,6 +11,7 @@
 * make sure abstract names can be path components
 * 802.11n/ac support (AP)
 * we need to wait a bit after killing wpa_supplicant
+* `netd reloadconfig` somehow leaks tty to the daemon (???)
 
 ## features
 
@@ -20,6 +22,13 @@
 * [optional] resolvconf integration
 * switch support (portgroup)
 * gvpe
+* zerotier
+* IPv6!!!
+* routing
+    * interface `route host/mask local;`, `route host/mask via router;`, `route default via router;`
+    * `default;`
+    * global `route host/mask via router;`
+* http proxy? (autonginx like)
 
 ## high level interface
 

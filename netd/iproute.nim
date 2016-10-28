@@ -180,8 +180,13 @@ proc ipAddrAdd*(ifaceName: InterfaceName, address: string, peerAddress: string =
   callIp(ifaceName.namespace, cmd)
 
 proc ipRouteAddDefault*(namespace: NamespaceName, via: string) =
-  # FIXME: what about namespace?
   callIp(namespace, ["ip", "route", "add", "default", "via", sanitizeArg(via)])
+
+proc ipRouteAdd*(namespace: NamespaceName, net: string, linkLocal: bool, target: string, src: string) =
+  callIp(namespace, ["ip", "route", "add", sanitizeArg(net), if linkLocal: "dev" else: "via", sanitizeArg(target), "src", src])
+
+proc ipRouteFlush*(ifaceName: InterfaceName) =
+  callIp(ifaceName.namespace, ["ip", "route", "flush", "dev", sanitizeArg(ifaceName.name)])
 
 proc ipNetnsCreate*(name: string) =
   callIp(RootNamespace, ["ip", "netns", "add", sanitizeArg(name)])

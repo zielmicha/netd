@@ -8,9 +8,8 @@ proc create*(t: typedesc[IptablesPlugin], manager: NetworkManager): IptablesPlug
   new(result)
   result.manager = manager
 
-let tables = ["filter", "nat", "mangle", "raw",
-              "filter6"]
-              #"nat6", "mangle6", "raw6"]
+let tables = ["filter", "nat", "mangle", "raw"]
+              # ["filter6", "nat6", "mangle6", "raw6"]
 
 method reload(self: IptablesPlugin) =
   for table in tables:

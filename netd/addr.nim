@@ -3,7 +3,7 @@ import conf/ast
 
 type AddrManager* = ref object of Plugin
 
-method configureInterfaceAdress*(self: Plugin, iface: ManagedInterface, config: Suite): bool =
+method configureInterfaceAdress*(self: Plugin, iface: ManagedInterface, config: Suite): bool {.base.} =
   ## Configure addresses for given `ManagedInterface`.
   ## Return true if this plugin will handle addressing for this interface.
 
@@ -22,5 +22,6 @@ method configureInterface*(self: AddrManager, iface: ManagedInterface, config: S
       taken = true
 
   if not taken:
+    # this should also remove routes
     ipAddrFlush(iface.interfaceName)
     ipLinkUp(iface.interfaceName)

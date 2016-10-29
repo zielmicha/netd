@@ -15,6 +15,15 @@ let stationWirelessCommands = SuiteDef(commands: @[
   cmd("name", singleValueArgDef()),
   cmd("network", @[suiteArgDef(suiteDef=baseWirelessCommands)]),
   cmd("passphrase", singleValueArgDef()),
+  cmd("key_mgmt", singleValueArgDef()),
+  # passthrough
+  cmd("anonymous_identity", singleValueArgDef()),
+  cmd("identity", singleValueArgDef()),
+  cmd("phase2", singleValueArgDef()),
+  cmd("eap", singleValueArgDef()),
+  cmd("password", singleValueArgDef()),
+  cmd("domain_suffix_match", singleValueArgDef()),
+  cmd("ca_cert", singleValueArgDef()), # TODO: file
 ])
 
 addressDefCommands.commands.add cmd("wireless_station", @[valueArgDef(name="name"), suiteArgDef(suiteDef=stationWirelessCommands)])

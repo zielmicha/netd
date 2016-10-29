@@ -55,6 +55,12 @@ proc stationSubinterface(self: WirelessPlugin, iface: ManagedInterface, config: 
       return network
   return nil
 
+proc wpaQuote(s: string): string =
+  # FIXME: is this enough?
+  if "\n" in s or "\"" in s:
+    raise newException(ValueError, "bad value")
+  return "\"" & s & "\""
+
 proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
   # 1. Configure network if connected to any
   let activeConfig = self.stationSubinterface(iface, config)
@@ -89,13 +95,23 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
     let ssid = network.singleValue("ssid").stringValue
     let id_str = iface.abstractName & "/" & ssid
     configStr &= "network={\n"
-    configStr &= "  id_str=\"" & id_str & "\"\n"
-    configStr &= "  ssid=\"" & ssid & "\"\n"
+    configStr &= "  id_str=\"" & id_str.wpaQuote & "\"\n"
+    configStr &= "  ssid=\"" & ssid.wpaQuote & "\"\n"
     let passphrase = network.singleValue("passphrase", required=false).stringValue
     if passphrase != nil:
-      configStr &= "  psk=\"" & passphrase & "\"\n"
+      configStr &= "  psk=\"" & passphrase.wpaQuote & "\"\n"
     else:
-      configStr &= "  key_mgmt=NONE\n"
+      let keyMgmt = network.singleValue("key_mgmt", required=false).stringValue
+      if keyMgmt == nil:
+        configStr &= "  key_mgmt=NONE\n"
+      else:
+        configStr &= "  key_mgmt=" & keyMgmt.wpaQuote & " \n"
+
+    for key in @["identity", "anonymous_identity", "phase2", "eap", "password"]:
+      let val = network.singleValue(key, required=false).stringValue
+      if val != nil:
+        configStr &= "  " & key & "=" & val
+
     configStr &= "}\n"
 
   # wait until wpa_supplicant starts

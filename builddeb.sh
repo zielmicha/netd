@@ -9,7 +9,7 @@ install bin/netd $p/usr/local/bin/
 install -m644 net.networkos.netd.conf $p/etc/dbus-1/system.d/
 install netd.service $p/lib/systemd/system/
 
-VERSION="0.1.2"
+VERSION="0.1.4"
 
 cat > $p/DEBIAN/control <<EOF
 Package: netd

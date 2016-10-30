@@ -2,7 +2,9 @@ import tables, typetraits, strutils, os, posix
 import netd/config
 import conf/ast, conf/parse, conf/exceptions
 
-const RunPath* = "/run/netd"
+const
+  RunPath* = "/run/netd"
+  CachePath* = "/var/cache/netd"
 
 type
   NetworkManager* = ref object

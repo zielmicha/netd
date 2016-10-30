@@ -101,7 +101,7 @@ proc sanitizeIfaceName(name: string): string =
   return name
 
 proc getMasterName*(interfaceName: InterfaceName): string =
-  inNamespace interfaceName.namespace:
+  inNamespace interfaceName.namespace: # FIXME
     let basePath = "/sys/class/net/" & sanitizeIfaceName(interfaceName.name) & "/brport"
 
     if not basePath.dirExists:
@@ -116,6 +116,17 @@ proc linkExists*(interfaceName: InterfaceName): bool =
       if link.name == interfaceName.name:
         return true
     return false
+
+proc waitForLink*(interfaceName: InterfaceName) =
+  var timeout = 10
+  for i in 0..7:
+    if linkExists(interfaceName):
+      return
+
+    sleep(timeout)
+    timeout *= 2
+
+  raise newException(OSError, "timed out waiting for link %1" % [$interfaceName])
 
 proc getNlLink*(interfaceName: InterfaceName): NlLink =
   inNamespace interfaceName.namespace:

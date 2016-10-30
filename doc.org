@@ -193,6 +193,32 @@ wireguard wg0 {
 };
 #+END_EXAMPLE
 
+** ZeroTier
+ZeroTier is a planet-scale smart Ethernet switch.
+
+#+BEGIN_EXAMPLE
+zerotier default {
+    secret "62526ca27f:0:d3806f5bca3e55b0fe6076fa5077888b10957e9b7108cc8ae2ce351e39137e0877804d4199c73ad75c81266217a59faffc3ab8ca6ba5f3983c4649958a9fb6e9:db0d60eadaf062b2567aff4b573f86e2702b7f924b478e2b06e8df2a94a2fd16fb468cb60309b06e84db558c450b0b22d8eb3c6ea82bf93b8a81c341beb33d29";
+    port 9993; # optional
+    namespace root; # namespace for making ZeroTier connection
+
+    network 8056c2e21c000001 {
+        name zt0;
+        managed; # allow network controller to assign local IP addresses and routes
+        global; # allow network controller to assign global IP addresses and routes
+    };
+
+    network 1234567899000001 {
+        name zt1;
+        static {
+            # assign address manually
+            address 10.88.0.2/16;
+            route 10.89.0.0/16 via 10.88.0.1;
+        };
+    };
+};
+#+END_EXAMPLE
+
 * Wireless setup
 
 #+BEGIN_EXAMPLE

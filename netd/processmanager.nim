@@ -81,7 +81,7 @@ proc teardownNotPoked*(self: ProcessManager) =
     if not info.poked:
       info.terminate()
     else:
-      info.poked = true
+      info.poked = false
       newProcesses[info.key] = info
 
   self.processes = newProcesses

@@ -24,6 +24,7 @@ import netd/openvpnptp
 import netd/iptables
 import netd/dhcpserver
 import netd/wireless
+import netd/zerotier
 
 proc baseMain(manager: NetworkManager, params: seq[string]): bool =
   let bus = getUniqueBus(DBUS_BUS_SYSTEM, "net.networkos.netd")
@@ -35,6 +36,8 @@ proc baseMain(manager: NetworkManager, params: seq[string]): bool =
         quit 1
 
       createDir(RunPath)
+      createDir(CachePath)
+
       let config = if params.len == 2: params[1] else: "/etc/netd.conf"
       let bus = getBus(dbus.DBUS_BUS_SYSTEM)
       let mainLoop = MainLoop.create(bus)
@@ -87,6 +90,7 @@ proc main*() =
   manager.registerPlugin(LinkHwPlugin)
   manager.registerPlugin(LinkVlanPlugin)
   manager.registerPlugin(OpenvpnPtpPlugin)
+  manager.registerPlugin(ZeroTierPlugin)
 
   manager.registerPlugin(IptablesPlugin)
   manager.registerPlugin(DhcpServerPlugin)

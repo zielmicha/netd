@@ -60,7 +60,7 @@ proc createSymlinkIfNeeded(dest: string, src: string) =
 
 proc setupInstance(self: ZeroTierPlugin, identity: string, config: Suite) =
   let secret = config.singleValue("secret").stringValue
-  var namespace = config.singleValue("namespace").stringValue
+  var namespace = config.singleValue("namespace", required=false).stringValue
   if namespace == nil: namespace = "root"
   var port = config.singleValue("port", required=false).stringValue
   if port == nil: port = "9993"
@@ -133,6 +133,10 @@ proc setupInstance(self: ZeroTierPlugin, identity: string, config: Suite) =
 
       self.getPlugin(LinkManager).configureInterfaceAll(iface, config)
       i += 1
+  else:
+    for networkCmd in config.commandsWithName("network"):
+      let (iface, config) = makeLinkConfig(identity, networkCmd)
+      self.getPlugin(LinkManager).configureInterfaceAll(iface, config)
 
 method configureInterfaceAdress*(self: ZeroTierPlugin, iface: ManagedInterface, config: Suite): bool =
   # does ZT autoconfigure address on this interface?

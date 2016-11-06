@@ -35,6 +35,7 @@ proc setupInterface(self: OpenVpnPtpPlugin, iface: ManagedInterface, config: Sui
 
   var cmd = @["openvpn", "--route-noexec", "--ifconfig-noexec"]
 
+  cmd &= @["--keepalive", "40", "130"] # keep-alives for NAT
   cmd &= @["--secret", key] # TODO: changing key content won't cause reload
   cmd &= @["--dev-type", "tun"]
   cmd &= @["--dev", iface.kernelName]

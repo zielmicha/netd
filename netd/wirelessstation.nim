@@ -61,6 +61,12 @@ proc wpaQuote(s: string): string =
     raise newException(ValueError, "bad value")
   return "\"" & s & "\""
 
+proc wpaQuoteRaw(s: string): string =
+  for ch in s:
+    if ch notin Letters and ch notin Digits and ch notin {'-', '_'}:
+      raise newException(ValueError, "bad value")
+  return s
+
 proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Suite) =
   # 1. Configure network if connected to any
   let activeConfig = self.stationSubinterface(iface, config)
@@ -95,22 +101,33 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
     let ssid = network.singleValue("ssid").stringValue
     let id_str = iface.abstractName & "/" & ssid
     configStr &= "network={\n"
-    configStr &= "  id_str=\"" & id_str.wpaQuote & "\"\n"
-    configStr &= "  ssid=\"" & ssid.wpaQuote & "\"\n"
+    configStr &= "  id_str=" & id_str.wpaQuote & "\n"
+    configStr &= "  ssid=" & ssid.wpaQuote & "\n"
     let passphrase = network.singleValue("passphrase", required=false).stringValue
-    if passphrase != nil:
-      configStr &= "  psk=\"" & passphrase.wpaQuote & "\"\n"
-    else:
-      let keyMgmt = network.singleValue("key_mgmt", required=false).stringValue
-      if keyMgmt == nil:
-        configStr &= "  key_mgmt=NONE\n"
-      else:
-        configStr &= "  key_mgmt=" & keyMgmt.wpaQuote & " \n"
+    let keyMgmt = network.singleValue("key_mgmt", required=false).stringValue
 
-    for key in @["identity", "anonymous_identity", "phase2", "eap", "password"]:
+    if passphrase == nil and keyMgmt == nil:
+      configStr &= "  key_mgmt=NONE\n"
+
+    if keyMgmt != nil:
+      configStr &= "  key_mgmt=" & keyMgmt.wpaQuoteRaw & " \n"
+
+    if passphrase != nil:
+      if keyMgmt == "WPA-EAP":
+        configStr &= "  password=" & passphrase.wpaQuote & "\n"
+      else:
+        configStr &= "  psk=" & passphrase.wpaQuote & "\n"
+
+    for key in @["eap"]:
       let val = network.singleValue(key, required=false).stringValue
       if val != nil:
-        configStr &= "  " & key & "=" & val
+        configStr &= "  " & key & "=" & val.wpaQuoteRaw & "\n"
+
+    for key in @["identity", "anonymous_identity", "phase2", "password",
+                 "domain_suffix_match", "ca_cert"]:
+      let val = network.singleValue(key, required=false).stringValue
+      if val != nil:
+        configStr &= "  " & key & "=" & val.wpaQuote & "\n"
 
     configStr &= "}\n"
 

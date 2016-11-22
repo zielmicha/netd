@@ -1,5 +1,5 @@
 # Most complete documentation for wpa_supplicant is example configuration file: https://w1.fi/cgit/hostap/plain/wpa_supplicant/wpa_supplicant.conf
-import subprocess, conf/ast, strutils, collections/random, os, tables, securehash, options, posix
+import subprocess, conf/ast, strutils, collections/random, os, tables, securehash, options, posix, strutils
 import netd/core, netd/processmanager, netd/link, netd/addr, netd/iproute, netd/main
 import netd/dbuscore, dbus, dbus/def, dbus/lowlevel
 include netd/wirelessconfig

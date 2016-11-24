@@ -138,6 +138,9 @@ proc configureStation(self: WirelessPlugin, iface: ManagedInterface, config: Sui
       sleep(timeout)
       timeout *= 2
 
+      if timeout > 1000:
+        raise newException(Exception, "wpa_supplicant failed to start")
+
   # make sure notification process is running
   self.processManager.pokeProcess(
     key="cli-" & iface.abstractName,
